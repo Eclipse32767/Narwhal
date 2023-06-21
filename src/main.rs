@@ -66,6 +66,14 @@ impl Application for Narwhal {
             Message::FileClicked(x) => {
                 self.currentpath.push(tempfiles[x].clone());
                 println!("{}", tempfiles[x].clone());
+                self.files = vec![];
+                let read_output = match fs::read_dir(self.currentpath.clone()) {
+                    Ok(x) => x,
+                    Err(y) => panic!("{}", y),
+                };
+                for path in read_output {
+                    self.files.push(path.unwrap())
+                }
             },
         }
         iced::Command::none()

@@ -17,6 +17,7 @@ struct Narwhal {
 
 #[derive(Debug, Clone)]
 enum Message {
+    FileClicked(usize),
 }
 
 impl Default for Narwhal {
@@ -56,19 +57,30 @@ impl Application for Narwhal {
         String::from("Narwhal File Manager")
     }
     fn update(&mut self, message: Self::Message) -> iced::Command<Self::Message> {
+        let mut tempfiles: Vec<String> = vec![];
+        for file in &self.files {
+            let temp = file.file_name().to_string_lossy().to_string();
+            tempfiles.push(temp);
+        };
         match message {
-
+            Message::FileClicked(x) => {
+                self.currentpath.push(tempfiles[x].clone());
+                println!("{}", tempfiles[x].clone());
+            },
         }
         iced::Command::none()
     }
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
         let btn_test = Button::new("test");
-        let mut unrolled_files = String::from("");
-        for file in &self.files {
-            unrolled_files = format!("{unrolled_files} \n {}", file.file_name().to_string_lossy())
+        let mut file_listing = Column::new();
+        for i in 0..self.files.len() {
+            let filename = self.files[i].file_name();
+            let file_string: String = filename.to_string_lossy().to_string();
+            let text = Text::new(file_string);
+            let button = Button::new(text).on_press(Message::FileClicked(i));
+            file_listing = file_listing.push(button)
         }
-        let txt_test = Text::new(unrolled_files);
-        let row_test = Row::new().push(btn_test).push(txt_test);
+        let row_test = Row::new().push(btn_test).push(file_listing);
         let column_test = Column::new().push(row_test);
         Container::new(column_test).width(Length::Fill).height(Length::Fill).into()
     }

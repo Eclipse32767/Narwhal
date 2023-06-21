@@ -25,11 +25,11 @@ impl Default for Narwhal {
     fn default() -> Self {
         let current_dir = match env::current_dir() {
             Ok(x) => x,
-            Err(..) => panic!()
+            Err(x) => panic!("{}", x)
         };
         let read_output = match fs::read_dir(current_dir) {
             Ok(x) => x,
-            Err(..) => panic!()
+            Err(x) => panic!("{}", x)
         };
         let mut filelist = vec![];
         for path in read_output {
@@ -37,7 +37,7 @@ impl Default for Narwhal {
         }
         let current_dir = match env::current_dir() {
             Ok(x) => x,
-            Err(..) => panic!()
+            Err(x) => panic!("{}", x)
         };
         Narwhal { files: filelist, currentpath: current_dir }
     }
@@ -75,7 +75,7 @@ impl Application for Narwhal {
                     self.files = vec![];
                     let read_output = match fs::read_dir(self.currentpath.clone()) {
                         Ok(x) => x,
-                        Err(y) => panic!("{}", y),
+                        Err(x) => panic!("{}", x),
                     };
                     for path in read_output {
                         self.files.push(path.unwrap())
@@ -87,7 +87,7 @@ impl Application for Narwhal {
                 self.files = vec![];
                 let read_output = match fs::read_dir(self.currentpath.clone()) {
                     Ok(x) => x,
-                    Err(y) => panic!("{}", y),
+                    Err(x) => panic!("{}", x),
                 };
                 for path in read_output {
                     self.files.push(path.unwrap())

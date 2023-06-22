@@ -15,7 +15,8 @@ struct Narwhal {
     files: Vec<DirEntry>,
     currentpath: PathBuf,
     sorttype: SortType,
-    desired_cols: u32
+    desired_cols: u32,
+    show_hidden: bool
 }
 
 #[derive(Debug, Clone)]
@@ -23,6 +24,7 @@ enum Message {
     FileClicked(usize),
     GoBack,
     SortChanged,
+    HiddenChanged,
     KeyboardUpdate(iced::keyboard::Event),
     WindowUpdate(iced::window::Event)
 }
@@ -111,7 +113,7 @@ impl Default for Narwhal {
             Ok(x) => x,
             Err(x) => panic!("{}", x)
         };
-        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5 }
+        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5, show_hidden: true }
     }
 }
 
@@ -182,6 +184,9 @@ impl Application for Narwhal {
                 };
                 sort_file_by_type(&mut self.files, self.sorttype.clone())
             }
+            Message::HiddenChanged => {
+                self.show_hidden = !self.show_hidden;
+            }
             Message::KeyboardUpdate(_kb_event) => {
 
             }
@@ -207,29 +212,47 @@ impl Application for Narwhal {
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
         let back_btn = Button::new("Back").on_press(Message::GoBack);
         let sort_btn = Button::new("Sort").on_press(Message::SortChanged);
+        let hidden_btn = Button::new("Hidden").on_press(Message::HiddenChanged);
         let mut file_listing = Column::new();
         let mut temprow = Row::new();
         for i in 0..self.files.len() {
-            let filetype = get_file_type(self.files[i].metadata().expect("this should never happen"));
-            let file_icon = match filetype {
-                FileType::File => format!("{}/resources/text-x-generic.svg", env!("CARGO_MANIFEST_DIR")),
-                FileType::Folder => format!("{}/resources/folder-blue.svg", env!("CARGO_MANIFEST_DIR")),
-                FileType::Link => format!("{}/resources/folder-blue.svg", env!("CARGO_MANIFEST_DIR")),
-            };
-            let handle = svg::Handle::from_path(file_icon);
-            let image = svg(handle);
             let filename = self.files[i].file_name().to_string_lossy().to_string();
-            let text = Text::new(filename);
-            let button = Button::new(image).on_press(Message::FileClicked(i));
-            let full = Column::new().push(button).push(text);
-            if i % self.desired_cols as usize == 0 && i != self.files.len() {
+            let char_vec: Vec<char> = filename.chars().collect();
+            let full = if self.show_hidden && char_vec[0] == '.' {
+                let filetype = get_file_type(self.files[i].metadata().expect("a file somehow failed to have metadata"));
+                let file_icon = match filetype {
+                    FileType::File => format!("{}/resources/text-x-generic.svg", env!("CARGO_MANIFEST_DIR")),
+                    FileType::Folder => format!("{}/resources/folder-blue.svg", env!("CARGO_MANIFEST_DIR")),
+                    FileType::Link => format!("{}/resources/folder-blue.svg", env!("CARGO_MANIFEST_DIR")),
+                };
+                let handle = svg::Handle::from_path(file_icon);
+                let image = svg(handle);
+                let text = Text::new(filename);
+                let button = Button::new(image).on_press(Message::FileClicked(i));
+                Column::new().push(button).push(text)
+            } else if !self.show_hidden && char_vec[0] == '.' {
+                Column::new()
+            } else {
+                let filetype = get_file_type(self.files[i].metadata().expect("a file somehow failed to have metadata"));
+                let file_icon = match filetype {
+                    FileType::File => format!("{}/resources/text-x-generic.svg", env!("CARGO_MANIFEST_DIR")),
+                    FileType::Folder => format!("{}/resources/folder-blue.svg", env!("CARGO_MANIFEST_DIR")),
+                    FileType::Link => format!("{}/resources/folder-blue.svg", env!("CARGO_MANIFEST_DIR")),
+                };
+                let handle = svg::Handle::from_path(file_icon);
+                let image = svg(handle);
+                let text = Text::new(filename);
+                let button = Button::new(image).on_press(Message::FileClicked(i));
+                Column::new().push(button).push(text)
+            };
+            if i % self.desired_cols as usize == 0 {
                 file_listing = file_listing.push(temprow);
                 temprow = Row::new().spacing(10);
             }
             temprow = temprow.push(full);
         }
         file_listing = file_listing.push(temprow);
-        let function_buttons = Column::new().push(back_btn).push(sort_btn);
+        let function_buttons = Column::new().push(back_btn).push(sort_btn).push(hidden_btn);
         let row_test = Row::new().push(function_buttons).push(file_listing);
         Container::new(row_test).width(Length::Fill).height(Length::Fill).into()
     }

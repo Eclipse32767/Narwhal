@@ -35,6 +35,10 @@ enum FileType {
     File,
     Link
 }
+struct LazyFile {
+    name: String,
+    metadata: Metadata
+}
 #[derive(Clone)]
 enum SortType {
     Alphabetical,
@@ -215,10 +219,9 @@ impl Application for Narwhal {
         let hidden_btn = Button::new("Hidden").on_press(Message::HiddenChanged);
         let mut file_listing = Column::new();
         let mut temprow = Row::new();
-        for i in 0..self.files.len() {
-            let filename = self.files[i].file_name().to_string_lossy().to_string();
-            let char_vec: Vec<char> = filename.chars().collect();
-            let full = if self.show_hidden && char_vec[0] == '.' {
+        if self.show_hidden {
+            for i in 0..self.files.len() {
+                let filename = self.files[i].file_name().to_string_lossy().to_string();
                 let filetype = get_file_type(self.files[i].metadata().expect("a file somehow failed to have metadata"));
                 let file_icon = match filetype {
                     FileType::File => format!("{}/resources/text-x-generic.svg", env!("CARGO_MANIFEST_DIR")),
@@ -229,27 +232,42 @@ impl Application for Narwhal {
                 let image = svg(handle);
                 let text = Text::new(filename);
                 let button = Button::new(image).on_press(Message::FileClicked(i));
-                Column::new().push(button).push(text)
-            } else if !self.show_hidden && char_vec[0] == '.' {
-                Column::new()
-            } else {
-                let filetype = get_file_type(self.files[i].metadata().expect("a file somehow failed to have metadata"));
-                let file_icon = match filetype {
-                    FileType::File => format!("{}/resources/text-x-generic.svg", env!("CARGO_MANIFEST_DIR")),
-                    FileType::Folder => format!("{}/resources/folder-blue.svg", env!("CARGO_MANIFEST_DIR")),
-                    FileType::Link => format!("{}/resources/folder-blue.svg", env!("CARGO_MANIFEST_DIR")),
-                };
-                let handle = svg::Handle::from_path(file_icon);
-                let image = svg(handle);
-                let text = Text::new(filename);
-                let button = Button::new(image).on_press(Message::FileClicked(i));
-                Column::new().push(button).push(text)
-            };
-            if i % self.desired_cols as usize == 0 {
-                file_listing = file_listing.push(temprow);
-                temprow = Row::new().spacing(10);
+                let full = Column::new().push(button).push(text);
+                if i % self.desired_cols as usize == 0 {
+                    file_listing = file_listing.push(temprow);
+                    temprow = Row::new().spacing(10);
+                }
+                temprow = temprow.push(full);
             }
-            temprow = temprow.push(full);
+        } else {
+            let mut newfiles = vec![];
+            for i in 0..self.files.len() {
+                let filename = self.files[i].file_name().to_string_lossy().to_string();
+                let metadata = self.files[i].metadata().expect("uh oh");
+                let lazy = LazyFile {name: filename.clone(), metadata: metadata};
+                let chars_vec: Vec<char> = filename.chars().collect();
+                if chars_vec[0] != '.' {
+                    newfiles.push(lazy);
+                }
+            }
+            for i in 0..newfiles.len() {
+                let filetype = get_file_type(newfiles[i].metadata.clone());
+                let file_icon = match filetype {
+                    FileType::File => format!("{}/resources/text-x-generic.svg", env!("CARGO_MANIFEST_DIR")),
+                    FileType::Folder => format!("{}/resources/folder-blue.svg", env!("CARGO_MANIFEST_DIR")),
+                    FileType::Link => format!("{}/resources/folder-blue.svg", env!("CARGO_MANIFEST_DIR")),
+                };
+                let handle = svg::Handle::from_path(file_icon);
+                let image = svg(handle);
+                let text = Text::new(newfiles[i].name.clone());
+                let button = Button::new(image).on_press(Message::FileClicked(i));
+                let full = Column::new().push(button).push(text);
+                if i % self.desired_cols as usize == 0 {
+                    file_listing = file_listing.push(temprow);
+                    temprow = Row::new().spacing(10);
+                }
+                temprow = temprow.push(full);
+            }
         }
         file_listing = file_listing.push(temprow);
         let function_buttons = Column::new().push(back_btn).push(sort_btn).push(hidden_btn);

@@ -10,6 +10,9 @@ fn main() -> Result {
     Narwhal::run(Settings::default())
 }
 
+const EST_LENGTH: u32 = 94;
+const FONT_SIZE: u16 = 16;
+const SPACING: u16 = 10;
 
 struct Narwhal {
     files: Vec<DirEntry>,
@@ -199,7 +202,7 @@ impl Application for Narwhal {
                     iced::window::Event::Moved { x: _, y: _ } => {},
                     iced::window::Event::Resized { width, height: _ } => {
                         let adjusted_width = width - 20;
-                        self.desired_cols = adjusted_width / 84;
+                        self.desired_cols = adjusted_width / EST_LENGTH;
                     },
                     iced::window::Event::RedrawRequested(_) => {},
                     iced::window::Event::CloseRequested => {},
@@ -230,12 +233,12 @@ impl Application for Narwhal {
                 };
                 let handle = svg::Handle::from_path(file_icon);
                 let image = svg(handle);
-                let text = Text::new(filename);
+                let text = Text::new(filename).size(FONT_SIZE);
                 let button = Button::new(image).on_press(Message::FileClicked(i));
                 let full = Column::new().push(button).push(text);
                 if i % self.desired_cols as usize == 0 {
                     file_listing = file_listing.push(temprow);
-                    temprow = Row::new().spacing(10);
+                    temprow = Row::new().spacing(SPACING);
                 }
                 temprow = temprow.push(full);
             }
@@ -259,19 +262,19 @@ impl Application for Narwhal {
                 };
                 let handle = svg::Handle::from_path(file_icon);
                 let image = svg(handle);
-                let text = Text::new(newfiles[i].name.clone());
+                let text = Text::new(newfiles[i].name.clone()).size(FONT_SIZE);
                 let button = Button::new(image).on_press(Message::FileClicked(i));
                 let full = Column::new().push(button).push(text);
                 if i % self.desired_cols as usize == 0 {
                     file_listing = file_listing.push(temprow);
-                    temprow = Row::new().spacing(10);
+                    temprow = Row::new().spacing(SPACING);
                 }
                 temprow = temprow.push(full);
             }
         }
         file_listing = file_listing.push(temprow);
         let function_buttons = Column::new().push(back_btn).push(sort_btn).push(hidden_btn);
-        let row_test = Row::new().push(function_buttons).push(file_listing);
+        let row_test = Row::new().push(function_buttons).push(file_listing).spacing(SPACING);
         Container::new(row_test).width(Length::Fill).height(Length::Fill).into()
     }
     fn subscription(&self) -> iced::Subscription<Message> {

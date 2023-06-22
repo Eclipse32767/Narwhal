@@ -224,7 +224,7 @@ impl Application for Narwhal {
             let full = Column::new().push(button).push(text);
             if i % self.desired_cols as usize == 0 && i != self.files.len() {
                 file_listing = file_listing.push(temprow);
-                temprow = Row::new();
+                temprow = Row::new().spacing(10);
             }
             temprow = temprow.push(full);
         }

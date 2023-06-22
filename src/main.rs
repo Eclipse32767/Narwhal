@@ -4,8 +4,9 @@ use iced::theme;
 use iced_style::Theme;
 use std::fs::{DirEntry, Metadata};
 use std::{env, fs};
-use std::path::{PathBuf};
+use std::path::{PathBuf, Path};
 use std::process::Command;
+use freedesktop_icons::lookup;
 
 fn main() -> Result {
     Narwhal::run(Settings::default())
@@ -52,6 +53,13 @@ enum SortType {
     Files,
 }
 
+fn get_ext_from_name(name: String) -> Option<String> {
+    match Path::new(&name).extension() {
+        Some(x) => Some(x.to_string_lossy().to_string()),
+        None => None
+    }
+}
+
 fn get_file_type(metadata: Metadata) -> FileType {
     if metadata.is_dir() {
         FileType::Folder
@@ -63,11 +71,17 @@ fn get_file_type(metadata: Metadata) -> FileType {
         FileType::File
     }
 }
-fn get_file_icon(filetype: FileType) -> String {
+fn get_file_icon(filetype: FileType, name: String) -> String {
     match filetype {
-        FileType::File => format!("{}/resources/text-x-generic.svg", env!("CARGO_MANIFEST_DIR")),
-        FileType::Folder => format!("{}/resources/folder-blue.svg", env!("CARGO_MANIFEST_DIR")),
-        FileType::Link => format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR"))
+        FileType::File => {
+            format!("{}/resources/text-x-generic.svg", env!("CARGO_MANIFEST_DIR"))
+        }
+        FileType::Folder => {
+            lookup("folder").with_cache().with_size(64).with_theme("breeze").find().unwrap().to_string_lossy().to_string()
+        }
+        FileType::Link => {
+            format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR"))
+        }
     }
 }
 fn foldercmp(a: &DirEntry, b: &DirEntry, folders_first: bool) -> std::cmp::Ordering {
@@ -235,7 +249,7 @@ impl Application for Narwhal {
             for i in 0..self.files.len() {
                 let filename = self.files[i].file_name().to_string_lossy().to_string();
                 let filetype = get_file_type(self.files[i].metadata().expect("a file somehow failed to have metadata"));
-                let file_icon = get_file_icon(filetype);
+                let file_icon = get_file_icon(filetype, filename.clone());
                 let handle = svg::Handle::from_path(file_icon);
                 let image = svg(handle);
                 let text = Text::new(filename).size(FONT_SIZE);
@@ -260,7 +274,7 @@ impl Application for Narwhal {
             }
             for i in 0..newfiles.len() {
                 let filetype = get_file_type(newfiles[i].metadata.clone());
-                let file_icon = get_file_icon(filetype);
+                let file_icon = get_file_icon(filetype, newfiles[i].name.clone());
                 let handle = svg::Handle::from_path(file_icon);
                 let image = svg(handle);
                 let text = Text::new(newfiles[i].name.clone()).size(FONT_SIZE);

@@ -14,7 +14,8 @@ fn main() -> Result {
 struct Narwhal {
     files: Vec<DirEntry>,
     currentpath: PathBuf,
-    sorttype: SortType
+    sorttype: SortType,
+    desired_cols: u32
 }
 
 #[derive(Debug, Clone)]
@@ -22,6 +23,8 @@ enum Message {
     FileClicked(usize),
     GoBack,
     SortChanged,
+    KeyboardUpdate(iced::keyboard::Event),
+    WindowUpdate(iced::window::Event)
 }
 
 #[derive(PartialEq)]
@@ -108,7 +111,7 @@ impl Default for Narwhal {
             Ok(x) => x,
             Err(x) => panic!("{}", x)
         };
-        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical}
+        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5 }
     }
 }
 
@@ -179,6 +182,25 @@ impl Application for Narwhal {
                 };
                 sort_file_by_type(&mut self.files, self.sorttype.clone())
             }
+            Message::KeyboardUpdate(_kb_event) => {
+
+            }
+            Message::WindowUpdate(win_event) => {
+                match win_event {
+                    iced::window::Event::Moved { x: _, y: _ } => {},
+                    iced::window::Event::Resized { width, height: _ } => {
+                        let adjusted_width = width - 20;
+                        self.desired_cols = adjusted_width / 84;
+                    },
+                    iced::window::Event::RedrawRequested(_) => {},
+                    iced::window::Event::CloseRequested => {},
+                    iced::window::Event::Focused => {},
+                    iced::window::Event::Unfocused => {},
+                    iced::window::Event::FileHovered(_) => {},
+                    iced::window::Event::FileDropped(_) => {},
+                    iced::window::Event::FilesHoveredLeft => {},
+                }
+            }
         }
         iced::Command::none()
     }
@@ -186,6 +208,7 @@ impl Application for Narwhal {
         let back_btn = Button::new("Back").on_press(Message::GoBack);
         let sort_btn = Button::new("Sort").on_press(Message::SortChanged);
         let mut file_listing = Column::new();
+        let mut temprow = Row::new();
         for i in 0..self.files.len() {
             let filetype = get_file_type(self.files[i].metadata().expect("this should never happen"));
             let file_icon = match filetype {
@@ -199,10 +222,28 @@ impl Application for Narwhal {
             let text = Text::new(filename);
             let button = Button::new(image).on_press(Message::FileClicked(i));
             let full = Column::new().push(button).push(text);
-            file_listing = file_listing.push(full)
+            if i % self.desired_cols as usize == 0 && i != self.files.len() {
+                file_listing = file_listing.push(temprow);
+                temprow = Row::new();
+            }
+            temprow = temprow.push(full);
         }
+        file_listing = file_listing.push(temprow);
         let function_buttons = Column::new().push(back_btn).push(sort_btn);
         let row_test = Row::new().push(function_buttons).push(file_listing);
         Container::new(row_test).width(Length::Fill).height(Length::Fill).into()
+    }
+    fn subscription(&self) -> iced::Subscription<Message> {
+        iced::subscription::events_with(
+            |event, _| {
+                if let iced::Event::Keyboard(keyboard_event) = event {
+                    Some(Message::KeyboardUpdate(keyboard_event))
+                } else if let iced::Event::Window(window_event) = event{
+                    Some(Message::WindowUpdate(window_event))
+                } else {
+                    None
+                }
+            }
+        )
     }
 }

@@ -63,6 +63,13 @@ fn get_file_type(metadata: Metadata) -> FileType {
         FileType::File
     }
 }
+fn get_file_icon(filetype: FileType) -> String {
+    match filetype {
+        FileType::File => format!("{}/resources/text-x-generic.svg", env!("CARGO_MANIFEST_DIR")),
+        FileType::Folder => format!("{}/resources/folder-blue.svg", env!("CARGO_MANIFEST_DIR")),
+        FileType::Link => format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR"))
+    }
+}
 fn foldercmp(a: &DirEntry, b: &DirEntry, folders_first: bool) -> std::cmp::Ordering {
     let a_metadata = a.metadata().unwrap();
     let b_metadata = b.metadata().unwrap();
@@ -228,11 +235,7 @@ impl Application for Narwhal {
             for i in 0..self.files.len() {
                 let filename = self.files[i].file_name().to_string_lossy().to_string();
                 let filetype = get_file_type(self.files[i].metadata().expect("a file somehow failed to have metadata"));
-                let file_icon = match filetype {
-                    FileType::File => format!("{}/resources/text-x-generic.svg", env!("CARGO_MANIFEST_DIR")),
-                    FileType::Folder => format!("{}/resources/folder-blue.svg", env!("CARGO_MANIFEST_DIR")),
-                    FileType::Link => format!("{}/resources/folder-blue.svg", env!("CARGO_MANIFEST_DIR")),
-                };
+                let file_icon = get_file_icon(filetype);
                 let handle = svg::Handle::from_path(file_icon);
                 let image = svg(handle);
                 let text = Text::new(filename).size(FONT_SIZE);
@@ -257,11 +260,7 @@ impl Application for Narwhal {
             }
             for i in 0..newfiles.len() {
                 let filetype = get_file_type(newfiles[i].metadata.clone());
-                let file_icon = match filetype {
-                    FileType::File => format!("{}/resources/text-x-generic.svg", env!("CARGO_MANIFEST_DIR")),
-                    FileType::Folder => format!("{}/resources/folder-blue.svg", env!("CARGO_MANIFEST_DIR")),
-                    FileType::Link => format!("{}/resources/folder-blue.svg", env!("CARGO_MANIFEST_DIR")),
-                };
+                let file_icon = get_file_icon(filetype);
                 let handle = svg::Handle::from_path(file_icon);
                 let image = svg(handle);
                 let text = Text::new(newfiles[i].name.clone()).size(FONT_SIZE);

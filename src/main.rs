@@ -1,5 +1,6 @@
 use iced::{Application, Result, Settings, executor, Length};
 use iced::widget::{Button, Text, Row, Column, Container, svg};
+use iced::theme;
 use iced_style::Theme;
 use std::fs::{DirEntry, Metadata};
 use std::{env, fs};
@@ -40,7 +41,8 @@ enum FileType {
 }
 struct LazyFile {
     name: String,
-    metadata: Metadata
+    metadata: Metadata,
+    original_index: usize,
 }
 #[derive(Clone)]
 enum SortType {
@@ -234,7 +236,7 @@ impl Application for Narwhal {
                 let handle = svg::Handle::from_path(file_icon);
                 let image = svg(handle);
                 let text = Text::new(filename).size(FONT_SIZE);
-                let button = Button::new(image).on_press(Message::FileClicked(i));
+                let button = Button::new(image).on_press(Message::FileClicked(i)).style(theme::Button::Text);
                 let full = Column::new().push(button).push(text);
                 if i % self.desired_cols as usize == 0 {
                     file_listing = file_listing.push(temprow);
@@ -247,7 +249,7 @@ impl Application for Narwhal {
             for i in 0..self.files.len() {
                 let filename = self.files[i].file_name().to_string_lossy().to_string();
                 let metadata = self.files[i].metadata().expect("uh oh");
-                let lazy = LazyFile {name: filename.clone(), metadata: metadata};
+                let lazy = LazyFile {name: filename.clone(), metadata: metadata, original_index: i};
                 let chars_vec: Vec<char> = filename.chars().collect();
                 if chars_vec[0] != '.' {
                     newfiles.push(lazy);
@@ -263,7 +265,7 @@ impl Application for Narwhal {
                 let handle = svg::Handle::from_path(file_icon);
                 let image = svg(handle);
                 let text = Text::new(newfiles[i].name.clone()).size(FONT_SIZE);
-                let button = Button::new(image).on_press(Message::FileClicked(i));
+                let button = Button::new(image).on_press(Message::FileClicked(newfiles[i].original_index)).style(theme::Button::Text);
                 let full = Column::new().push(button).push(text);
                 if i % self.desired_cols as usize == 0 {
                     file_listing = file_listing.push(temprow);

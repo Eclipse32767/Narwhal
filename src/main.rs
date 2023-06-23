@@ -4,9 +4,10 @@ use iced::theme;
 use iced_style::Theme;
 use std::fs::{DirEntry, Metadata};
 use std::{env, fs};
-use std::path::{PathBuf, Path};
+use std::path::{PathBuf};
 use std::process::Command;
 use freedesktop_icons::lookup;
+use xdg_utils::query_mime_info;
 
 fn main() -> Result {
     Narwhal::run(Settings::default())
@@ -42,6 +43,7 @@ enum FileType {
 }
 struct LazyFile {
     name: String,
+    path: String,
     metadata: Metadata,
     original_index: usize,
 }
@@ -51,13 +53,6 @@ enum SortType {
     Reverse,
     Folders,
     Files,
-}
-
-fn get_ext_from_name(name: String) -> Option<String> {
-    match Path::new(&name).extension() {
-        Some(x) => Some(x.to_string_lossy().to_string()),
-        None => None
-    }
 }
 
 fn get_file_type(metadata: Metadata) -> FileType {
@@ -71,10 +66,24 @@ fn get_file_type(metadata: Metadata) -> FileType {
         FileType::File
     }
 }
-fn get_file_icon(filetype: FileType, name: String) -> String {
+fn get_file_icon(filetype: FileType, path: String) -> String {
     match filetype {
         FileType::File => {
-            format!("{}/resources/text-x-generic.svg", env!("CARGO_MANIFEST_DIR"))
+            let mimetype = query_mime_info(path).map_err(|_| ()).map(|bytes| String::from_utf8_lossy(&bytes).into_owned());
+            let mut fixed_type = match mimetype {
+                Ok(x) => x.replace("/", "-"),
+                Err(..) => panic!("lol")
+            };
+            if fixed_type == "text-x-shellscript" {
+                fixed_type = "text-x-script".to_owned();
+            }
+            match lookup(&fixed_type).with_cache().with_size(64).with_theme("breeze").find() {
+                Some(x) => x.to_string_lossy().to_string(),
+                None => {
+                    println!("{fixed_type}");
+                    format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR"))
+                }
+            }
         }
         FileType::Folder => {
             lookup("folder").with_cache().with_size(64).with_theme("breeze").find().unwrap().to_string_lossy().to_string()
@@ -249,7 +258,7 @@ impl Application for Narwhal {
             for i in 0..self.files.len() {
                 let filename = self.files[i].file_name().to_string_lossy().to_string();
                 let filetype = get_file_type(self.files[i].metadata().expect("a file somehow failed to have metadata"));
-                let file_icon = get_file_icon(filetype, filename.clone());
+                let file_icon = get_file_icon(filetype, self.files[i].path().to_string_lossy().to_string());
                 let handle = svg::Handle::from_path(file_icon);
                 let image = svg(handle);
                 let text = Text::new(filename).size(FONT_SIZE);
@@ -265,8 +274,10 @@ impl Application for Narwhal {
             let mut newfiles = vec![];
             for i in 0..self.files.len() {
                 let filename = self.files[i].file_name().to_string_lossy().to_string();
+                let directory = self.currentpath.to_string_lossy().to_string();
+                let filepath = format!("{directory}/{filename}");
                 let metadata = self.files[i].metadata().expect("uh oh");
-                let lazy = LazyFile {name: filename.clone(), metadata: metadata, original_index: i};
+                let lazy = LazyFile {name: filename.clone(), path: filepath, metadata: metadata, original_index: i};
                 let chars_vec: Vec<char> = filename.chars().collect();
                 if chars_vec[0] != '.' {
                     newfiles.push(lazy);
@@ -274,7 +285,7 @@ impl Application for Narwhal {
             }
             for i in 0..newfiles.len() {
                 let filetype = get_file_type(newfiles[i].metadata.clone());
-                let file_icon = get_file_icon(filetype, newfiles[i].name.clone());
+                let file_icon = get_file_icon(filetype, newfiles[i].path.clone());
                 let handle = svg::Handle::from_path(file_icon);
                 let image = svg(handle);
                 let text = Text::new(newfiles[i].name.clone()).size(FONT_SIZE);

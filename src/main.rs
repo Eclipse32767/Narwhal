@@ -13,7 +13,8 @@ fn main() -> Result {
     Narwhal::run(Settings::default())
 }
 
-const EST_LENGTH: u32 = 94;
+const EST_LENGTH: u32 = 84;
+const EST_HEIGHT: u32 = 94;
 const FONT_SIZE: u16 = 16;
 const SPACING: u16 = 10;
 
@@ -22,6 +23,7 @@ struct Narwhal {
     currentpath: PathBuf,
     sorttype: SortType,
     desired_cols: u32,
+    desired_rows: u32,
     show_hidden: bool
 }
 
@@ -54,6 +56,15 @@ enum SortType {
     Folders,
     Files,
 }
+fn clean_bad_mime(mime: String) -> String {
+    let substrings_type: Vec<&str> = mime.split("-").collect();
+    let category = substrings_type[0].to_string();
+    if category == "application".to_string() {
+        String::from("application-x-executable")
+    } else {
+        format!("{}-x-generic", category)
+    }
+}
 
 fn get_file_type(metadata: Metadata) -> FileType {
     if metadata.is_dir() {
@@ -74,14 +85,15 @@ fn get_file_icon(filetype: FileType, path: String) -> String {
                 Ok(x) => x.replace("/", "-"),
                 Err(..) => panic!("lol")
             };
-            if fixed_type == "text-x-shellscript" {
-                fixed_type = "text-x-script".to_owned();
-            }
             match lookup(&fixed_type).with_cache().with_size(64).with_theme("breeze").find() {
                 Some(x) => x.to_string_lossy().to_string(),
                 None => {
                     println!("{fixed_type}");
-                    format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR"))
+                    fixed_type = clean_bad_mime(fixed_type);
+                    match lookup(&fixed_type).with_cache().with_size(64).with_theme("breeze").find() {
+                        Some(x) => x.to_string_lossy().to_string(),
+                        None => format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR"))
+                    }
                 }
             }
         }
@@ -152,7 +164,7 @@ impl Default for Narwhal {
             Ok(x) => x,
             Err(x) => panic!("{}", x)
         };
-        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5, show_hidden: true }
+        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5, show_hidden: true, desired_rows: 5}
     }
 }
 
@@ -232,9 +244,11 @@ impl Application for Narwhal {
             Message::WindowUpdate(win_event) => {
                 match win_event {
                     iced::window::Event::Moved { x: _, y: _ } => {},
-                    iced::window::Event::Resized { width, height: _ } => {
+                    iced::window::Event::Resized { width, height } => {
                         let adjusted_width = width - 20;
                         self.desired_cols = adjusted_width / EST_LENGTH;
+                        let adjusted_height = height - 20;
+                        self.desired_rows = adjusted_height / EST_HEIGHT;
                     },
                     iced::window::Event::RedrawRequested(_) => {},
                     iced::window::Event::CloseRequested => {},
@@ -254,8 +268,10 @@ impl Application for Narwhal {
         let hidden_btn = Button::new("Hidden").on_press(Message::HiddenChanged);
         let mut file_listing = Column::new();
         let mut temprow = Row::new();
+        let mut rows_entered = 0;
         if self.show_hidden {
             for i in 0..self.files.len() {
+                if self.desired_rows >= rows_entered {
                 let filename = self.files[i].file_name().to_string_lossy().to_string();
                 let filetype = get_file_type(self.files[i].metadata().expect("a file somehow failed to have metadata"));
                 let file_icon = get_file_icon(filetype, self.files[i].path().to_string_lossy().to_string());
@@ -267,8 +283,12 @@ impl Application for Narwhal {
                 if i % self.desired_cols as usize == 0 {
                     file_listing = file_listing.push(temprow);
                     temprow = Row::new().spacing(SPACING);
+                    rows_entered = rows_entered + 1;
                 }
+                if self.desired_rows != rows_entered-1 {
                 temprow = temprow.push(full);
+                }
+            }
             }
         } else {
             let mut newfiles = vec![];
@@ -284,6 +304,7 @@ impl Application for Narwhal {
                 }
             }
             for i in 0..newfiles.len() {
+                if self.desired_rows >= rows_entered {
                 let filetype = get_file_type(newfiles[i].metadata.clone());
                 let file_icon = get_file_icon(filetype, newfiles[i].path.clone());
                 let handle = svg::Handle::from_path(file_icon);
@@ -294,8 +315,10 @@ impl Application for Narwhal {
                 if i % self.desired_cols as usize == 0 {
                     file_listing = file_listing.push(temprow);
                     temprow = Row::new().spacing(SPACING);
+                    rows_entered = rows_entered + 1;
                 }
                 temprow = temprow.push(full);
+            }
             }
         }
         file_listing = file_listing.push(temprow);

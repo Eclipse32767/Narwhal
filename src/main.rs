@@ -13,11 +13,12 @@ fn main() -> Result {
     Narwhal::run(Settings::default())
 }
 
-const EST_LENGTH: u32 = 94;
+const EST_LENGTH: u32 = 84;
 const EST_HEIGHT: u32 = 104;
 const FONT_SIZE: u16 = 16;
 const SPACING: u16 = 10;
 const MAX_LENGTH: usize = 10;
+const SIDEBAR_WIDTH: u16 = 75;
 
 struct Narwhal {
     files: Vec<DirEntry>,
@@ -260,7 +261,7 @@ impl Application for Narwhal {
                 match win_event {
                     iced::window::Event::Moved { x: _, y: _ } => {},
                     iced::window::Event::Resized { width, height } => {
-                        let adjusted_width = width - 20;
+                        let adjusted_width = width - SIDEBAR_WIDTH as u32;
                         self.desired_cols = adjusted_width / EST_LENGTH;
                         let adjusted_height = height;
                         self.desired_rows = adjusted_height / EST_HEIGHT;
@@ -278,9 +279,9 @@ impl Application for Narwhal {
         iced::Command::none()
     }
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
-        let back_btn = Button::new("Back").on_press(Message::GoBack);
-        let sort_btn = Button::new("Sort").on_press(Message::SortChanged);
-        let hidden_btn = Button::new("Hidden").on_press(Message::HiddenChanged);
+        let back_btn = Button::new("Back").on_press(Message::GoBack).width(SIDEBAR_WIDTH);
+        let sort_btn = Button::new("Sort").on_press(Message::SortChanged).width(SIDEBAR_WIDTH);
+        let hidden_btn = Button::new("Hidden").on_press(Message::HiddenChanged).width(SIDEBAR_WIDTH);
         let mut file_listing = Column::new();
         let mut temprow = Row::new();
         let mut rows_entered = 0;

@@ -13,10 +13,11 @@ fn main() -> Result {
     Narwhal::run(Settings::default())
 }
 
-const EST_LENGTH: u32 = 84;
-const EST_HEIGHT: u32 = 94;
+const EST_LENGTH: u32 = 94;
+const EST_HEIGHT: u32 = 104;
 const FONT_SIZE: u16 = 16;
 const SPACING: u16 = 10;
+const MAX_LENGTH: usize = 10;
 
 struct Narwhal {
     files: Vec<DirEntry>,
@@ -76,6 +77,20 @@ fn get_file_type(metadata: Metadata) -> FileType {
     } else {
         FileType::File
     }
+}
+fn clip_file_name(name: String) -> String {
+    let usename: Vec<char> = name.clone().chars().collect();
+    let mut newvec: Vec<char> = vec![];
+    let len = MAX_LENGTH;
+    if name.chars().count() > len {
+        for i in 0..len {
+            newvec.push(usename[i]);
+        }
+        let newstr = newvec.into_iter().collect::<String>();
+        format!("{newstr}...")
+    } else {
+        name
+    }  
 }
 fn get_file_icon(filetype: FileType, path: String) -> String {
     match filetype {
@@ -247,7 +262,7 @@ impl Application for Narwhal {
                     iced::window::Event::Resized { width, height } => {
                         let adjusted_width = width - 20;
                         self.desired_cols = adjusted_width / EST_LENGTH;
-                        let adjusted_height = height - 20;
+                        let adjusted_height = height;
                         self.desired_rows = adjusted_height / EST_HEIGHT;
                     },
                     iced::window::Event::RedrawRequested(_) => {},
@@ -269,29 +284,17 @@ impl Application for Narwhal {
         let mut file_listing = Column::new();
         let mut temprow = Row::new();
         let mut rows_entered = 0;
+        let mut newfiles = vec![];
         if self.show_hidden {
             for i in 0..self.files.len() {
-                if self.desired_rows >= rows_entered {
                 let filename = self.files[i].file_name().to_string_lossy().to_string();
-                let filetype = get_file_type(self.files[i].metadata().expect("a file somehow failed to have metadata"));
-                let file_icon = get_file_icon(filetype, self.files[i].path().to_string_lossy().to_string());
-                let handle = svg::Handle::from_path(file_icon);
-                let image = svg(handle);
-                let text = Text::new(filename).size(FONT_SIZE);
-                let button = Button::new(image).on_press(Message::FileClicked(i)).style(theme::Button::Text);
-                let full = Column::new().push(button).push(text);
-                if i % self.desired_cols as usize == 0 {
-                    file_listing = file_listing.push(temprow);
-                    temprow = Row::new().spacing(SPACING);
-                    rows_entered = rows_entered + 1;
-                }
-                if self.desired_rows != rows_entered-1 {
-                temprow = temprow.push(full);
-                }
-            }
+                let directory = self.currentpath.to_string_lossy().to_string();
+                let filepath = format!("{directory}/{filename}");
+                let metadata = self.files[i].metadata().expect("uh oh");
+                let lazy = LazyFile {name: filename.clone(), path: filepath, metadata: metadata, original_index: i};
+                newfiles.push(lazy);
             }
         } else {
-            let mut newfiles = vec![];
             for i in 0..self.files.len() {
                 let filename = self.files[i].file_name().to_string_lossy().to_string();
                 let directory = self.currentpath.to_string_lossy().to_string();
@@ -303,22 +306,24 @@ impl Application for Narwhal {
                     newfiles.push(lazy);
                 }
             }
-            for i in 0..newfiles.len() {
-                if self.desired_rows >= rows_entered {
+        }
+        for i in 0..newfiles.len() {
+            if self.desired_rows >= rows_entered {
                 let filetype = get_file_type(newfiles[i].metadata.clone());
                 let file_icon = get_file_icon(filetype, newfiles[i].path.clone());
                 let handle = svg::Handle::from_path(file_icon);
                 let image = svg(handle);
-                let text = Text::new(newfiles[i].name.clone()).size(FONT_SIZE);
+                let text = Text::new(clip_file_name(newfiles[i].name.clone())).size(FONT_SIZE);
                 let button = Button::new(image).on_press(Message::FileClicked(newfiles[i].original_index)).style(theme::Button::Text);
-                let full = Column::new().push(button).push(text);
+                let full = Column::new().push(button).push(text).align_items(iced::Alignment::Center);
                 if i % self.desired_cols as usize == 0 {
                     file_listing = file_listing.push(temprow);
                     temprow = Row::new().spacing(SPACING);
                     rows_entered = rows_entered + 1;
                 }
-                temprow = temprow.push(full);
-            }
+                if self.desired_rows != rows_entered-1 {
+                    temprow = temprow.push(full);
+                }
             }
         }
         file_listing = file_listing.push(temprow);

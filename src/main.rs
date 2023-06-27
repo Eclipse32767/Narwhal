@@ -334,6 +334,8 @@ impl Application for Narwhal {
                 match win_event {
                     iced::window::Event::Moved { x: _, y: _ } => {},
                     iced::window::Event::Resized { width, height } => {
+                        let old_cols = self.desired_cols;
+                        let old_rows = self.desired_rows;
                         if width > SIDEBAR_WIDTH as u32 {
                             let adjusted_width = width - SIDEBAR_WIDTH as u32;
                             self.desired_cols = adjusted_width / EST_LENGTH;
@@ -344,6 +346,11 @@ impl Application for Narwhal {
                         if height > EST_HEIGHT {
                             let adjusted_height = height;
                             self.desired_rows = adjusted_height / EST_HEIGHT;
+                        }
+                        if old_cols == self.desired_cols && old_rows == self.desired_rows {
+
+                        } else {
+                            self.regen_uifiles();
                         }
                     },
                     iced::window::Event::RedrawRequested(_) => {},

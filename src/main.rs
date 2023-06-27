@@ -334,10 +334,14 @@ impl Application for Narwhal {
                 match win_event {
                     iced::window::Event::Moved { x: _, y: _ } => {},
                     iced::window::Event::Resized { width, height } => {
-                        let adjusted_width = width - SIDEBAR_WIDTH as u32;
-                        self.desired_cols = adjusted_width / EST_LENGTH;
-                        let adjusted_height = height;
-                        self.desired_rows = adjusted_height / EST_HEIGHT;
+                        if width > SIDEBAR_WIDTH as u32 {
+                            let adjusted_width = width - SIDEBAR_WIDTH as u32;
+                            self.desired_cols = adjusted_width / EST_LENGTH;
+                        }
+                        if height > EST_HEIGHT {
+                            let adjusted_height = height;
+                            self.desired_rows = adjusted_height / EST_HEIGHT;
+                        }
                     },
                     iced::window::Event::RedrawRequested(_) => {},
                     iced::window::Event::CloseRequested => {},

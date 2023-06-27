@@ -27,7 +27,8 @@ struct Narwhal {
     desired_cols: u32,
     desired_rows: u32,
     show_hidden: bool,
-    last_clicked_file: Option<usize>
+    last_clicked_file: Option<usize>,
+    uifiles: Vec<UIFile>
 }
 
 #[derive(Debug, Clone)]
@@ -47,20 +48,25 @@ enum FileType {
     Link
 }
 #[derive(Clone)]
-struct LazyFile {
+struct UIFile {
     name: String,
     path: String,
     metadata: Metadata,
     original_index: usize,
+    selected: bool
 }
 
-fn lazy_file_to_btn<'a>(lazy: LazyFile) -> Column<'a, Message> {
+fn ui_file_to_btn<'a>(lazy: UIFile) -> Column<'a, Message> {
     let filetype = get_file_type(lazy.metadata.clone());
     let file_icon = get_file_icon(filetype, lazy.path.clone());
     let handle = svg::Handle::from_path(file_icon);
     let image = svg(handle);
     let text = Text::new(clip_file_name(lazy.name.clone())).size(FONT_SIZE);
-    let button = Button::new(image).on_press(Message::FileClicked(lazy.original_index)).style(theme::Button::Text);
+    let button = if lazy.selected {
+        Button::new(image).on_press(Message::FileClicked(lazy.original_index))
+    } else {
+        Button::new(image).on_press(Message::FileClicked(lazy.original_index)).style(theme::Button::Text)
+    };
     Column::new().push(button).push(text).align_items(iced::Alignment::Center)
 }
 
@@ -193,7 +199,7 @@ impl Default for Narwhal {
             Ok(x) => x,
             Err(x) => panic!("{}", x)
         };
-        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5, show_hidden: true, desired_rows: 5, last_clicked_file: None}
+        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5, show_hidden: true, desired_rows: 5, last_clicked_file: None, uifiles: vec![]}
     }
 }
 
@@ -318,7 +324,11 @@ impl Application for Narwhal {
                 let directory = self.currentpath.to_string_lossy().to_string();
                 let filepath = format!("{directory}/{filename}");
                 let metadata = self.files[i].metadata().expect("uh oh");
-                let lazy = LazyFile {name: filename.clone(), path: filepath, metadata: metadata, original_index: i};
+                let selected = match self.last_clicked_file {
+                    Some(value) => i == value,
+                    None => false
+                };
+                let lazy = UIFile {name: filename.clone(), path: filepath, metadata: metadata, original_index: i, selected: selected};
                 newfiles.push(lazy);
             }
         } else {
@@ -327,7 +337,11 @@ impl Application for Narwhal {
                 let directory = self.currentpath.to_string_lossy().to_string();
                 let filepath = format!("{directory}/{filename}");
                 let metadata = self.files[i].metadata().expect("uh oh");
-                let lazy = LazyFile {name: filename.clone(), path: filepath, metadata: metadata, original_index: i};
+                let selected = match self.last_clicked_file {
+                    Some(value) => i == value,
+                    None => false
+                };
+                let lazy = UIFile {name: filename.clone(), path: filepath, metadata: metadata, original_index: i, selected: selected};
                 let chars_vec: Vec<char> = filename.chars().collect();
                 if chars_vec[0] != '.' {
                     newfiles.push(lazy);
@@ -336,7 +350,7 @@ impl Application for Narwhal {
         }
         for i in 0..newfiles.len() {
             if self.desired_rows >= rows_entered {
-                let full = lazy_file_to_btn(newfiles[i].clone());
+                let full = ui_file_to_btn(newfiles[i].clone());
                 if i % self.desired_cols as usize == 0 {
                     file_listing = file_listing.push(temprow);
                     temprow = Row::new().spacing(SPACING);

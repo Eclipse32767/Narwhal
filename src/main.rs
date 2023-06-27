@@ -188,6 +188,16 @@ impl Narwhal {
             }
         }
     }
+    fn regen_files(&mut self) {
+        self.files = vec![];
+        let read_output = match fs::read_dir(self.currentpath.clone()) {
+            Ok(x) => x,
+            Err(x) => panic!("{}", x),
+        };
+        for path in read_output {
+            self.files.push(path.unwrap())
+        }
+    }
 }
 fn sort_file_by_type(input: &mut Vec<DirEntry>, sort_type: SortType) {
     match sort_type {
@@ -276,14 +286,7 @@ impl Application for Narwhal {
                                 FileType::Folder => {
                                     self.currentpath.push(tempfiles[x].clone());
                                     println!("{}", tempfiles[x].clone());
-                                    self.files = vec![];
-                                    let read_output = match fs::read_dir(self.currentpath.clone()) {
-                                        Ok(x) => x,
-                                        Err(x) => panic!("{}", x),
-                                    };
-                                    for path in read_output {
-                                        self.files.push(path.unwrap())
-                                    }
+                                    self.regen_files();
                                     sort_file_by_type(&mut self.files, self.sorttype.clone());
                                 }
                                 FileType::Link => {
@@ -305,14 +308,7 @@ impl Application for Narwhal {
             },
             Message::GoBack => {
                 self.currentpath.pop();
-                self.files = vec![];
-                let read_output = match fs::read_dir(self.currentpath.clone()) {
-                    Ok(x) => x,
-                    Err(x) => panic!("{}", x),
-                };
-                for path in read_output {
-                    self.files.push(path.unwrap())
-                }
+                self.regen_files();
                 sort_file_by_type(&mut self.files, self.sorttype.clone());
                 self.last_clicked_file = None;
                 self.regen_uifiles();

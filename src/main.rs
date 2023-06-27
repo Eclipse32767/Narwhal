@@ -26,7 +26,8 @@ struct Narwhal {
     sorttype: SortType,
     desired_cols: u32,
     desired_rows: u32,
-    show_hidden: bool
+    show_hidden: bool,
+    last_clicked_file: Option<usize>
 }
 
 #[derive(Debug, Clone)]
@@ -180,7 +181,7 @@ impl Default for Narwhal {
             Ok(x) => x,
             Err(x) => panic!("{}", x)
         };
-        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5, show_hidden: true, desired_rows: 5}
+        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5, show_hidden: true, desired_rows: 5, last_clicked_file: None}
     }
 }
 
@@ -206,27 +207,39 @@ impl Application for Narwhal {
         };
         match message {
             Message::FileClicked(x) => {
-                let filetype = get_file_type(self.files[x].metadata().expect("this should never happen"));
-                match filetype {
-                    FileType::File => {
-                        let filename = self.files[x].path().display().to_string();
-                        Command::new("open").arg(filename).spawn().expect("oops");
-                    }
-                    FileType::Folder => {
-                        self.currentpath.push(tempfiles[x].clone());
-                        println!("{}", tempfiles[x].clone());
-                        self.files = vec![];
-                        let read_output = match fs::read_dir(self.currentpath.clone()) {
-                            Ok(x) => x,
-                            Err(x) => panic!("{}", x),
-                        };
-                        for path in read_output {
-                            self.files.push(path.unwrap())
-                        }
-                        sort_file_by_type(&mut self.files, self.sorttype.clone())
-                    }
-                    FileType::Link => {
+                match self.last_clicked_file {
+                    Some(value) => {
+                        if value == x {
+                            let filetype = get_file_type(self.files[x].metadata().expect("this should never happen"));
+                            match filetype {
+                                FileType::File => {
+                                    let filename = self.files[x].path().display().to_string();
+                                    Command::new("open").arg(filename).spawn().expect("oops");
+                                }
+                                FileType::Folder => {
+                                    self.currentpath.push(tempfiles[x].clone());
+                                    println!("{}", tempfiles[x].clone());
+                                    self.files = vec![];
+                                    let read_output = match fs::read_dir(self.currentpath.clone()) {
+                                        Ok(x) => x,
+                                        Err(x) => panic!("{}", x),
+                                    };
+                                    for path in read_output {
+                                        self.files.push(path.unwrap())
+                                    }
+                                    sort_file_by_type(&mut self.files, self.sorttype.clone());
+                                    self.last_clicked_file = None
+                                }
+                                FileType::Link => {
 
+                                }
+                            }
+                        } else {
+                            self.last_clicked_file = Some(x)
+                        }
+                    }
+                    None => {
+                        self.last_clicked_file = Some(x)
                     }
                 }
             },
@@ -240,7 +253,8 @@ impl Application for Narwhal {
                 for path in read_output {
                     self.files.push(path.unwrap())
                 }
-                sort_file_by_type(&mut self.files, self.sorttype.clone())
+                sort_file_by_type(&mut self.files, self.sorttype.clone());
+                self.last_clicked_file = None
             },
             Message::SortChanged => {
                 self.sorttype = match self.sorttype {

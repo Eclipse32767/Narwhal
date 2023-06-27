@@ -338,6 +338,9 @@ impl Application for Narwhal {
                             let adjusted_width = width - SIDEBAR_WIDTH as u32;
                             self.desired_cols = adjusted_width / EST_LENGTH;
                         }
+                        if self.desired_cols == 0 {
+                            self.desired_cols = 1;
+                        }
                         if height > EST_HEIGHT {
                             let adjusted_height = height;
                             self.desired_rows = adjusted_height / EST_HEIGHT;

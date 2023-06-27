@@ -50,15 +50,13 @@ enum FileType {
 #[derive(Clone)]
 struct UIFile {
     name: String,
-    path: String,
-    metadata: Metadata,
     original_index: usize,
-    selected: bool
+    selected: bool,
+    icon: String
 }
 
 fn ui_file_to_btn<'a>(lazy: UIFile) -> Column<'a, Message> {
-    let filetype = get_file_type(lazy.metadata.clone());
-    let file_icon = get_file_icon(filetype, lazy.path.clone());
+    let file_icon = lazy.icon.clone();
     let handle = svg::Handle::from_path(file_icon);
     let image = svg(handle);
     let text = Text::new(clip_file_name(lazy.name.clone())).size(FONT_SIZE);
@@ -199,7 +197,20 @@ impl Default for Narwhal {
             Ok(x) => x,
             Err(x) => panic!("{}", x)
         };
-        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5, show_hidden: true, desired_rows: 5, last_clicked_file: None, uifiles: vec![]}
+        let mut uifiles = vec![];
+        for i in 0..filelist.len() {
+            let name = filelist[i].file_name().to_string_lossy().to_string();
+            let path = filelist[i].path().to_string_lossy().to_string();
+            let metadata = match filelist[i].metadata() {
+                Ok(x) => x,
+                Err(x) => panic!("{}", x)
+            };
+            let selected = false;
+            let icon = get_file_icon(get_file_type(metadata.clone()), path.clone());
+            let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
+            uifiles.push(uifile);
+        }
+        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5, show_hidden: true, desired_rows: 5, last_clicked_file: None, uifiles: uifiles}
     }
 }
 
@@ -246,18 +257,78 @@ impl Application for Narwhal {
                                         self.files.push(path.unwrap())
                                     }
                                     sort_file_by_type(&mut self.files, self.sorttype.clone());
-                                    self.last_clicked_file = None
                                 }
                                 FileType::Link => {
 
                                 }
                             }
+                            self.last_clicked_file = None;
+                            self.uifiles = vec![];
+                            for i in 0..self.files.len() {
+                                let name = self.files[i].file_name().to_string_lossy().to_string();
+                                let chars: Vec<char> = name.chars().collect();
+                                if !self.show_hidden && chars[i] == '.' {
+                                } else {
+                                    let path = self.files[i].path().to_string_lossy().to_string();
+                                    let metadata = match self.files[i].metadata() {
+                                        Ok(x) => x,
+                                        Err(x) => panic!("{}", x)
+                                    };
+                                    let selected = match self.last_clicked_file {
+                                        Some(value) => value == i,
+                                        None => false
+                                    };
+                                    let icon = get_file_icon(get_file_type(metadata.clone()), path.clone());
+                                    let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
+                                    self.uifiles.push(uifile);
+                                }
+                            }
                         } else {
-                            self.last_clicked_file = Some(x)
+                            self.last_clicked_file = Some(x);
+                            self.uifiles = vec![];
+                            for i in 0..self.files.len() {
+                                let name = self.files[i].file_name().to_string_lossy().to_string();
+                                let chars: Vec<char> = name.chars().collect();
+                                if !self.show_hidden && chars[i] == '.' {
+                                } else {
+                                    let path = self.files[i].path().to_string_lossy().to_string();
+                                    let metadata = match self.files[i].metadata() {
+                                        Ok(x) => x,
+                                        Err(x) => panic!("{}", x)
+                                    };
+                                    let selected = match self.last_clicked_file {
+                                        Some(value) => value == i,
+                                        None => false
+                                    };
+                                    let icon = get_file_icon(get_file_type(metadata.clone()), path.clone());
+                                    let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
+                                    self.uifiles.push(uifile);
+                                }
+                            }
                         }
                     }
                     None => {
-                        self.last_clicked_file = Some(x)
+                        self.last_clicked_file = Some(x);
+                        self.uifiles = vec![];
+                        for i in 0..self.files.len() {
+                            let name = self.files[i].file_name().to_string_lossy().to_string();
+                            let chars: Vec<char> = name.chars().collect();
+                            if !self.show_hidden && chars[i] == '.' {
+                            } else {
+                                let path = self.files[i].path().to_string_lossy().to_string();
+                                let metadata = match self.files[i].metadata() {
+                                    Ok(x) => x,
+                                    Err(x) => panic!("{}", x)
+                                };
+                                let selected = match self.last_clicked_file {
+                                    Some(value) => value == i,
+                                    None => false
+                                };
+                                let icon = get_file_icon(get_file_type(metadata.clone()), path.clone());
+                                let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
+                                self.uifiles.push(uifile);
+                            }
+                        }
                     }
                 }
             },
@@ -272,7 +343,27 @@ impl Application for Narwhal {
                     self.files.push(path.unwrap())
                 }
                 sort_file_by_type(&mut self.files, self.sorttype.clone());
-                self.last_clicked_file = None
+                self.last_clicked_file = None;
+                self.uifiles = vec![];
+                for i in 0..self.files.len() {
+                    let name = self.files[i].file_name().to_string_lossy().to_string();
+                    let chars: Vec<char> = name.chars().collect();
+                    if !self.show_hidden && chars[i] == '.' {
+                    } else {
+                        let path = self.files[i].path().to_string_lossy().to_string();
+                        let metadata = match self.files[i].metadata() {
+                            Ok(x) => x,
+                            Err(x) => panic!("{}", x)
+                        };
+                        let selected = match self.last_clicked_file {
+                            Some(value) => value == i,
+                            None => false
+                        };
+                        let icon = get_file_icon(get_file_type(metadata.clone()), path.clone());
+                        let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
+                        self.uifiles.push(uifile);
+                    }
+                }
             },
             Message::SortChanged => {
                 self.sorttype = match self.sorttype {
@@ -281,10 +372,50 @@ impl Application for Narwhal {
                     SortType::Folders => SortType::Files,
                     SortType::Files => SortType::Alphabetical,
                 };
-                sort_file_by_type(&mut self.files, self.sorttype.clone())
+                sort_file_by_type(&mut self.files, self.sorttype.clone());
+                self.uifiles = vec![];
+                for i in 0..self.files.len() {
+                    let name = self.files[i].file_name().to_string_lossy().to_string();
+                    let chars: Vec<char> = name.chars().collect();
+                    if !self.show_hidden && chars[i] == '.' {
+                    } else {
+                        let path = self.files[i].path().to_string_lossy().to_string();
+                        let metadata = match self.files[i].metadata() {
+                            Ok(x) => x,
+                            Err(x) => panic!("{}", x)
+                        };
+                        let selected = match self.last_clicked_file {
+                            Some(value) => value == i,
+                            None => false
+                        };
+                        let icon = get_file_icon(get_file_type(metadata.clone()), path.clone());
+                        let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
+                        self.uifiles.push(uifile);
+                    }
+                }
             }
             Message::HiddenChanged => {
                 self.show_hidden = !self.show_hidden;
+                self.uifiles = vec![];
+                for i in 0..self.files.len() {
+                    let name = self.files[i].file_name().to_string_lossy().to_string();
+                    let chars: Vec<char> = name.chars().collect();
+                    if !self.show_hidden && chars[i] == '.' {
+                    } else {
+                        let path = self.files[i].path().to_string_lossy().to_string();
+                        let metadata = match self.files[i].metadata() {
+                            Ok(x) => x,
+                            Err(x) => panic!("{}", x)
+                        };
+                        let selected = match self.last_clicked_file {
+                            Some(value) => value == i,
+                            None => false
+                        };
+                        let icon = get_file_icon(get_file_type(metadata.clone()), path.clone());
+                        let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
+                        self.uifiles.push(uifile);
+                    }
+                }
             }
             Message::KeyboardUpdate(_kb_event) => {
 
@@ -317,40 +448,9 @@ impl Application for Narwhal {
         let mut file_listing = Column::new();
         let mut temprow = Row::new();
         let mut rows_entered = 0;
-        let mut newfiles = vec![];
-        if self.show_hidden {
-            for i in 0..self.files.len() {
-                let filename = self.files[i].file_name().to_string_lossy().to_string();
-                let directory = self.currentpath.to_string_lossy().to_string();
-                let filepath = format!("{directory}/{filename}");
-                let metadata = self.files[i].metadata().expect("uh oh");
-                let selected = match self.last_clicked_file {
-                    Some(value) => i == value,
-                    None => false
-                };
-                let lazy = UIFile {name: filename.clone(), path: filepath, metadata: metadata, original_index: i, selected: selected};
-                newfiles.push(lazy);
-            }
-        } else {
-            for i in 0..self.files.len() {
-                let filename = self.files[i].file_name().to_string_lossy().to_string();
-                let directory = self.currentpath.to_string_lossy().to_string();
-                let filepath = format!("{directory}/{filename}");
-                let metadata = self.files[i].metadata().expect("uh oh");
-                let selected = match self.last_clicked_file {
-                    Some(value) => i == value,
-                    None => false
-                };
-                let lazy = UIFile {name: filename.clone(), path: filepath, metadata: metadata, original_index: i, selected: selected};
-                let chars_vec: Vec<char> = filename.chars().collect();
-                if chars_vec[0] != '.' {
-                    newfiles.push(lazy);
-                }
-            }
-        }
-        for i in 0..newfiles.len() {
+        for i in 0..self.uifiles.len() {
             if self.desired_rows >= rows_entered {
-                let full = ui_file_to_btn(newfiles[i].clone());
+                let full = ui_file_to_btn(self.uifiles[i].clone());
                 if i % self.desired_cols as usize == 0 {
                     file_listing = file_listing.push(temprow);
                     temprow = Row::new().spacing(SPACING);

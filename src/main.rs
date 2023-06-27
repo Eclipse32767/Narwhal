@@ -46,12 +46,24 @@ enum FileType {
     File,
     Link
 }
+#[derive(Clone)]
 struct LazyFile {
     name: String,
     path: String,
     metadata: Metadata,
     original_index: usize,
 }
+
+fn lazy_file_to_btn<'a>(lazy: LazyFile) -> Column<'a, Message> {
+    let filetype = get_file_type(lazy.metadata.clone());
+    let file_icon = get_file_icon(filetype, lazy.path.clone());
+    let handle = svg::Handle::from_path(file_icon);
+    let image = svg(handle);
+    let text = Text::new(clip_file_name(lazy.name.clone())).size(FONT_SIZE);
+    let button = Button::new(image).on_press(Message::FileClicked(lazy.original_index)).style(theme::Button::Text);
+    Column::new().push(button).push(text).align_items(iced::Alignment::Center)
+}
+
 #[derive(Clone)]
 enum SortType {
     Alphabetical,
@@ -324,13 +336,7 @@ impl Application for Narwhal {
         }
         for i in 0..newfiles.len() {
             if self.desired_rows >= rows_entered {
-                let filetype = get_file_type(newfiles[i].metadata.clone());
-                let file_icon = get_file_icon(filetype, newfiles[i].path.clone());
-                let handle = svg::Handle::from_path(file_icon);
-                let image = svg(handle);
-                let text = Text::new(clip_file_name(newfiles[i].name.clone())).size(FONT_SIZE);
-                let button = Button::new(image).on_press(Message::FileClicked(newfiles[i].original_index)).style(theme::Button::Text);
-                let full = Column::new().push(button).push(text).align_items(iced::Alignment::Center);
+                let full = lazy_file_to_btn(newfiles[i].clone());
                 if i % self.desired_cols as usize == 0 {
                     file_listing = file_listing.push(temprow);
                     temprow = Row::new().spacing(SPACING);

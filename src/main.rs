@@ -161,6 +161,34 @@ fn foldercmp(a: &DirEntry, b: &DirEntry, folders_first: bool) -> std::cmp::Order
         }
     }
 }
+impl Narwhal {
+    fn regen_uifiles(&mut self) {
+        let max_iter = self.desired_cols * self.desired_rows;
+        self.uifiles = vec![];
+        for i in 0..self.files.len() {
+            if i == max_iter as usize {
+                break;
+            }
+            let name = self.files[i].file_name().to_string_lossy().to_string();
+            let chars: Vec<char> = name.chars().collect();
+            if !self.show_hidden && chars[i] == '.' {
+            } else {
+                let path = self.files[i].path().to_string_lossy().to_string();
+                let metadata = match self.files[i].metadata() {
+                    Ok(x) => x,
+                    Err(x) => panic!("{}", x)
+                };
+                let selected = match self.last_clicked_file {
+                    Some(value) => value == i,
+                    None => false
+                };
+                let icon = get_file_icon(get_file_type(metadata.clone()), path.clone());
+                let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
+                self.uifiles.push(uifile);
+            }
+        }
+    }
+}
 fn sort_file_by_type(input: &mut Vec<DirEntry>, sort_type: SortType) {
     match sort_type {
         SortType::Alphabetical => {
@@ -263,72 +291,15 @@ impl Application for Narwhal {
                                 }
                             }
                             self.last_clicked_file = None;
-                            self.uifiles = vec![];
-                            for i in 0..self.files.len() {
-                                let name = self.files[i].file_name().to_string_lossy().to_string();
-                                let chars: Vec<char> = name.chars().collect();
-                                if !self.show_hidden && chars[i] == '.' {
-                                } else {
-                                    let path = self.files[i].path().to_string_lossy().to_string();
-                                    let metadata = match self.files[i].metadata() {
-                                        Ok(x) => x,
-                                        Err(x) => panic!("{}", x)
-                                    };
-                                    let selected = match self.last_clicked_file {
-                                        Some(value) => value == i,
-                                        None => false
-                                    };
-                                    let icon = get_file_icon(get_file_type(metadata.clone()), path.clone());
-                                    let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
-                                    self.uifiles.push(uifile);
-                                }
-                            }
+                            self.regen_uifiles();
                         } else {
                             self.last_clicked_file = Some(x);
-                            self.uifiles = vec![];
-                            for i in 0..self.files.len() {
-                                let name = self.files[i].file_name().to_string_lossy().to_string();
-                                let chars: Vec<char> = name.chars().collect();
-                                if !self.show_hidden && chars[i] == '.' {
-                                } else {
-                                    let path = self.files[i].path().to_string_lossy().to_string();
-                                    let metadata = match self.files[i].metadata() {
-                                        Ok(x) => x,
-                                        Err(x) => panic!("{}", x)
-                                    };
-                                    let selected = match self.last_clicked_file {
-                                        Some(value) => value == i,
-                                        None => false
-                                    };
-                                    let icon = get_file_icon(get_file_type(metadata.clone()), path.clone());
-                                    let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
-                                    self.uifiles.push(uifile);
-                                }
-                            }
+                            self.regen_uifiles();
                         }
                     }
                     None => {
                         self.last_clicked_file = Some(x);
-                        self.uifiles = vec![];
-                        for i in 0..self.files.len() {
-                            let name = self.files[i].file_name().to_string_lossy().to_string();
-                            let chars: Vec<char> = name.chars().collect();
-                            if !self.show_hidden && chars[i] == '.' {
-                            } else {
-                                let path = self.files[i].path().to_string_lossy().to_string();
-                                let metadata = match self.files[i].metadata() {
-                                    Ok(x) => x,
-                                    Err(x) => panic!("{}", x)
-                                };
-                                let selected = match self.last_clicked_file {
-                                    Some(value) => value == i,
-                                    None => false
-                                };
-                                let icon = get_file_icon(get_file_type(metadata.clone()), path.clone());
-                                let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
-                                self.uifiles.push(uifile);
-                            }
-                        }
+                        self.regen_uifiles();
                     }
                 }
             },
@@ -344,26 +315,7 @@ impl Application for Narwhal {
                 }
                 sort_file_by_type(&mut self.files, self.sorttype.clone());
                 self.last_clicked_file = None;
-                self.uifiles = vec![];
-                for i in 0..self.files.len() {
-                    let name = self.files[i].file_name().to_string_lossy().to_string();
-                    let chars: Vec<char> = name.chars().collect();
-                    if !self.show_hidden && chars[i] == '.' {
-                    } else {
-                        let path = self.files[i].path().to_string_lossy().to_string();
-                        let metadata = match self.files[i].metadata() {
-                            Ok(x) => x,
-                            Err(x) => panic!("{}", x)
-                        };
-                        let selected = match self.last_clicked_file {
-                            Some(value) => value == i,
-                            None => false
-                        };
-                        let icon = get_file_icon(get_file_type(metadata.clone()), path.clone());
-                        let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
-                        self.uifiles.push(uifile);
-                    }
-                }
+                self.regen_uifiles();
             },
             Message::SortChanged => {
                 self.sorttype = match self.sorttype {
@@ -373,49 +325,11 @@ impl Application for Narwhal {
                     SortType::Files => SortType::Alphabetical,
                 };
                 sort_file_by_type(&mut self.files, self.sorttype.clone());
-                self.uifiles = vec![];
-                for i in 0..self.files.len() {
-                    let name = self.files[i].file_name().to_string_lossy().to_string();
-                    let chars: Vec<char> = name.chars().collect();
-                    if !self.show_hidden && chars[i] == '.' {
-                    } else {
-                        let path = self.files[i].path().to_string_lossy().to_string();
-                        let metadata = match self.files[i].metadata() {
-                            Ok(x) => x,
-                            Err(x) => panic!("{}", x)
-                        };
-                        let selected = match self.last_clicked_file {
-                            Some(value) => value == i,
-                            None => false
-                        };
-                        let icon = get_file_icon(get_file_type(metadata.clone()), path.clone());
-                        let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
-                        self.uifiles.push(uifile);
-                    }
-                }
+                self.regen_uifiles();
             }
             Message::HiddenChanged => {
                 self.show_hidden = !self.show_hidden;
-                self.uifiles = vec![];
-                for i in 0..self.files.len() {
-                    let name = self.files[i].file_name().to_string_lossy().to_string();
-                    let chars: Vec<char> = name.chars().collect();
-                    if !self.show_hidden && chars[i] == '.' {
-                    } else {
-                        let path = self.files[i].path().to_string_lossy().to_string();
-                        let metadata = match self.files[i].metadata() {
-                            Ok(x) => x,
-                            Err(x) => panic!("{}", x)
-                        };
-                        let selected = match self.last_clicked_file {
-                            Some(value) => value == i,
-                            None => false
-                        };
-                        let icon = get_file_icon(get_file_type(metadata.clone()), path.clone());
-                        let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
-                        self.uifiles.push(uifile);
-                    }
-                }
+                self.regen_uifiles();
             }
             Message::KeyboardUpdate(_kb_event) => {
 

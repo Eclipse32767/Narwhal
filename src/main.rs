@@ -2,15 +2,19 @@ use iced::{Application, Result, Settings, executor, Length};
 use iced::widget::{Button, Text, Row, Column, Container, svg};
 use iced::theme;
 use iced_style::Theme;
+use serde_derive::{Serialize, Deserialize};
 use std::fs::{DirEntry, Metadata};
 use std::{env, fs, vec};
 use std::path::{PathBuf};
 use std::process::{Command};
 use freedesktop_icons::lookup;
 use xdg_utils::query_mime_info;
+use toml;
 
 fn main() -> Result {
-    Narwhal::run(Settings::default())
+    let mut settings = Settings::default();
+    settings.exit_on_close_request =  false;
+    Narwhal::run(settings)
 }
 
 const EST_LENGTH: u32 = 84;
@@ -32,6 +36,16 @@ struct Narwhal {
     icon_cache: Vec<CachedIcon>,
     bookmarked_dirs: Vec<BookmarkDir>
 }
+fn get_cache_home() -> String {
+    match env::var("XDG_CACHE_HOME") {
+        Ok(x) => x,
+        Err(..) => match env::var("HOME") {
+            Ok(x) => format!("{x}/.cache"),
+            Err(..) => panic!("bailing out, you're on your own")
+        }
+    }
+}
+#[derive(Serialize, Deserialize, Clone)]
 struct CachedIcon {
     path: String,
     icon: String
@@ -50,6 +64,10 @@ enum Message {
     WindowUpdate(iced::window::Event),
     BookmarkCurrent,
     BookmarkClicked(usize),
+}
+#[derive(Serialize, Deserialize)]
+struct FlushCache {
+    icons: Vec<CachedIcon>
 }
 
 #[derive(PartialEq)]
@@ -281,7 +299,10 @@ impl Default for Narwhal {
             let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
             uifiles.push(uifile);
         }
-        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5, show_hidden: true, desired_rows: 5, last_clicked_file: None, uifiles: uifiles, icon_cache: vec![], bookmarked_dirs: vec![]}
+        let cache_home = format!("{}/NarwhalFM", get_cache_home());
+        let cache_text = fs::read_to_string(cache_home).unwrap();
+        let cache_struct: FlushCache = toml::from_str(&cache_text).unwrap();
+        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5, show_hidden: true, desired_rows: 5, last_clicked_file: None, uifiles: uifiles, icon_cache: cache_struct.icons.clone(), bookmarked_dirs: vec![]}
     }
 }
 
@@ -337,6 +358,7 @@ impl Application for Narwhal {
                         self.regen_uifiles();
                     }
                 }
+                iced::Command::none()
             },
             Message::GoBack => {
                 self.currentpath.pop();
@@ -344,6 +366,7 @@ impl Application for Narwhal {
                 sort_file_by_type(&mut self.files, self.sorttype.clone());
                 self.last_clicked_file = None;
                 self.regen_uifiles();
+                iced::Command::none()
             },
             Message::SortChanged => {
                 self.sorttype = match self.sorttype {
@@ -355,10 +378,12 @@ impl Application for Narwhal {
                 sort_file_by_type(&mut self.files, self.sorttype.clone());
                 self.last_clicked_file = None;
                 self.regen_uifiles();
+                iced::Command::none()
             }
             Message::HiddenChanged => {
                 self.show_hidden = !self.show_hidden;
                 self.regen_uifiles();
+                iced::Command::none()
             }
             Message::BookmarkCurrent => {
                 let dir = self.currentpath.to_string_lossy().to_string();
@@ -379,6 +404,7 @@ impl Application for Narwhal {
                         self.bookmarked_dirs.push(bookmark);
                     }
                 }
+                iced::Command::none()
             }
             Message::BookmarkClicked(index) => {
                 self.currentpath = PathBuf::from(self.bookmarked_dirs[index].path.clone());
@@ -386,13 +412,14 @@ impl Application for Narwhal {
                 sort_file_by_type(&mut self.files, self.sorttype.clone());
                 self.last_clicked_file = None;
                 self.regen_uifiles();
+                iced::Command::none()
             }
             Message::KeyboardUpdate(_kb_event) => {
-
+                iced::Command::none()
             }
             Message::WindowUpdate(win_event) => {
                 match win_event {
-                    iced::window::Event::Moved { x: _, y: _ } => {},
+                    iced::window::Event::Moved { x: _, y: _ } => {iced::Command::none()},
                     iced::window::Event::Resized { width, height } => {
                         let old_cols = self.desired_cols;
                         let old_rows = self.desired_rows;
@@ -412,18 +439,24 @@ impl Application for Narwhal {
                         } else {
                             self.regen_uifiles();
                         }
+                        iced::Command::none()
                     },
-                    iced::window::Event::RedrawRequested(_) => {},
-                    iced::window::Event::CloseRequested => {},
-                    iced::window::Event::Focused => {},
-                    iced::window::Event::Unfocused => {},
-                    iced::window::Event::FileHovered(_) => {},
-                    iced::window::Event::FileDropped(_) => {},
-                    iced::window::Event::FilesHoveredLeft => {},
+                    iced::window::Event::RedrawRequested(_) => {iced::Command::none()},
+                    iced::window::Event::CloseRequested => {
+                        let yes = FlushCache { icons: self.icon_cache.clone() };
+                        let cached_contents = toml::to_string(&yes).unwrap();
+                        let cache_home = format!("{}/NarwhalFM", get_cache_home());
+                        fs::write(cache_home, cached_contents).unwrap();
+                        iced::window::close()
+                    },
+                    iced::window::Event::Focused => {iced::Command::none()},
+                    iced::window::Event::Unfocused => {iced::Command::none()},
+                    iced::window::Event::FileHovered(_) => {iced::Command::none()},
+                    iced::window::Event::FileDropped(_) => {iced::Command::none()},
+                    iced::window::Event::FilesHoveredLeft => {iced::Command::none()},
                 }
             }
         }
-        iced::Command::none()
     }
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
         let back_btn = Button::new("Back").on_press(Message::GoBack).width(SIDEBAR_WIDTH);

@@ -5,7 +5,7 @@ use iced_style::Theme;
 use std::fs::{DirEntry, Metadata};
 use std::{env, fs};
 use std::path::{PathBuf};
-use std::process::Command;
+use std::process::{Command};
 use freedesktop_icons::lookup;
 use xdg_utils::query_mime_info;
 
@@ -84,7 +84,16 @@ fn clean_bad_mime(mime: String) -> String {
         format!("{}-x-generic", category)
     }
 }
-
+fn get_file_mimetype(path: String) -> String {
+    let raw_data = match query_mime_info(path) {
+        Ok(x) => x,
+        Err(x) => panic!("{}", x)  
+    };
+    match std::str::from_utf8(&raw_data) {
+        Ok(x) => x.to_string(),
+        Err(e) => panic!("{}", e)
+    }
+}
 fn get_file_type(metadata: Metadata) -> FileType {
     if metadata.is_dir() {
         FileType::Folder
@@ -113,17 +122,13 @@ fn clip_file_name(name: String) -> String {
 fn get_file_icon(filetype: FileType, path: String) -> String {
     match filetype {
         FileType::File => {
-            let mimetype = query_mime_info(path).map_err(|_| ()).map(|bytes| String::from_utf8_lossy(&bytes).into_owned());
-            let mut fixed_type = match mimetype {
-                Ok(x) => x.replace("/", "-"),
-                Err(..) => panic!("lol")
-            };
-            match lookup(&fixed_type).with_cache().with_size(64).with_theme("breeze").find() {
+            let mut mimetype = get_file_mimetype(path).replace("/", "-");
+            match lookup(&mimetype).with_cache().with_size(64).with_theme("breeze").find() {
                 Some(x) => x.to_string_lossy().to_string(),
                 None => {
-                    println!("{fixed_type}");
-                    fixed_type = clean_bad_mime(fixed_type);
-                    match lookup(&fixed_type).with_cache().with_size(64).with_theme("breeze").find() {
+                    println!("{mimetype}");
+                    mimetype = clean_bad_mime(mimetype);
+                    match lookup(&mimetype).with_cache().with_size(64).with_theme("breeze").find() {
                         Some(x) => x.to_string_lossy().to_string(),
                         None => format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR"))
                     }
@@ -285,7 +290,6 @@ impl Application for Narwhal {
                                 }
                                 FileType::Folder => {
                                     self.currentpath.push(tempfiles[x].clone());
-                                    println!("{}", tempfiles[x].clone());
                                     self.regen_files();
                                     sort_file_by_type(&mut self.files, self.sorttype.clone());
                                 }
@@ -321,6 +325,7 @@ impl Application for Narwhal {
                     SortType::Files => SortType::Alphabetical,
                 };
                 sort_file_by_type(&mut self.files, self.sorttype.clone());
+                self.last_clicked_file = None;
                 self.regen_uifiles();
             }
             Message::HiddenChanged => {

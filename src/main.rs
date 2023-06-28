@@ -29,11 +29,16 @@ struct Narwhal {
     show_hidden: bool,
     last_clicked_file: Option<usize>,
     uifiles: Vec<UIFile>,
-    icon_cache: Vec<CachedIcon>
+    icon_cache: Vec<CachedIcon>,
+    bookmarked_dirs: Vec<BookmarkDir>
 }
 struct CachedIcon {
     path: String,
     icon: String
+}
+struct BookmarkDir {
+    name: String,
+    path: String
 }
 #[derive(Debug, Clone)]
 enum Message {
@@ -42,7 +47,9 @@ enum Message {
     SortChanged,
     HiddenChanged,
     KeyboardUpdate(iced::keyboard::Event),
-    WindowUpdate(iced::window::Event)
+    WindowUpdate(iced::window::Event),
+    BookmarkCurrent,
+    BookmarkClicked(usize),
 }
 
 #[derive(PartialEq)]
@@ -274,7 +281,7 @@ impl Default for Narwhal {
             let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
             uifiles.push(uifile);
         }
-        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5, show_hidden: true, desired_rows: 5, last_clicked_file: None, uifiles: uifiles, icon_cache: vec![]}
+        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5, show_hidden: true, desired_rows: 5, last_clicked_file: None, uifiles: uifiles, icon_cache: vec![], bookmarked_dirs: vec![]}
     }
 }
 
@@ -353,6 +360,33 @@ impl Application for Narwhal {
                 self.show_hidden = !self.show_hidden;
                 self.regen_uifiles();
             }
+            Message::BookmarkCurrent => {
+                let dir = self.currentpath.to_string_lossy().to_string();
+                let paths: Vec<&str> = dir.split('/').into_iter().collect();
+                let name = paths[paths.len()-1].to_string();
+                let bookmark = BookmarkDir { name: name, path: dir };
+                let mut bookmark_already_exists = None;
+                for i in 0..self.bookmarked_dirs.len() {
+                    if bookmark.path == self.bookmarked_dirs[i].path {
+                        bookmark_already_exists = Some(i);
+                    }
+                }
+                match bookmark_already_exists {
+                    Some(value) => {
+                        self.bookmarked_dirs.remove(value);
+                    }
+                    None => {
+                        self.bookmarked_dirs.push(bookmark);
+                    }
+                }
+            }
+            Message::BookmarkClicked(index) => {
+                self.currentpath = PathBuf::from(self.bookmarked_dirs[index].path.clone());
+                self.regen_files();
+                sort_file_by_type(&mut self.files, self.sorttype.clone());
+                self.last_clicked_file = None;
+                self.regen_uifiles();
+            }
             Message::KeyboardUpdate(_kb_event) => {
 
             }
@@ -395,6 +429,13 @@ impl Application for Narwhal {
         let back_btn = Button::new("Back").on_press(Message::GoBack).width(SIDEBAR_WIDTH);
         let sort_btn = Button::new("Sort").on_press(Message::SortChanged).width(SIDEBAR_WIDTH);
         let hidden_btn = Button::new("Hidden").on_press(Message::HiddenChanged).width(SIDEBAR_WIDTH);
+        let bookmark_btn = Button::new("Bookmark").on_press(Message::BookmarkCurrent).width(SIDEBAR_WIDTH);
+        let mut function_buttons = Column::new().push(back_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn);
+        for i in 0..self.bookmarked_dirs.len() {
+            let btn_text = Text::new(self.bookmarked_dirs[i].name.clone());
+            let btn = Button::new(btn_text).on_press(Message::BookmarkClicked(i)).width(SIDEBAR_WIDTH);
+            function_buttons = function_buttons.push(btn)
+        }
         let mut file_listing = Column::new();
         let mut temprow = Row::new();
         let mut rows_entered = 0;
@@ -412,7 +453,6 @@ impl Application for Narwhal {
             }
         }
         file_listing = file_listing.push(temprow);
-        let function_buttons = Column::new().push(back_btn).push(sort_btn).push(hidden_btn);
         let row_test = Row::new().push(function_buttons).push(file_listing).spacing(SPACING);
         Container::new(row_test).width(Length::Fill).height(Length::Fill).into()
     }

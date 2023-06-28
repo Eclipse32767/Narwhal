@@ -180,7 +180,7 @@ impl Narwhal {
             }
             let name = self.files[i].file_name().to_string_lossy().to_string();
             let chars: Vec<char> = name.chars().collect();
-            if !self.show_hidden && chars[i] == '.' {
+            if !self.show_hidden && chars[0] == '.' {
             } else {
                 let path = self.files[i].path().to_string_lossy().to_string();
                 let metadata = match self.files[i].metadata() {

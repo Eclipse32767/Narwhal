@@ -3,7 +3,7 @@ use iced::widget::{Button, Text, Row, Column, Container, svg};
 use iced::theme;
 use iced_style::Theme;
 use std::fs::{DirEntry, Metadata};
-use std::{env, fs};
+use std::{env, fs, vec};
 use std::path::{PathBuf};
 use std::process::{Command};
 use freedesktop_icons::lookup;
@@ -28,9 +28,13 @@ struct Narwhal {
     desired_rows: u32,
     show_hidden: bool,
     last_clicked_file: Option<usize>,
-    uifiles: Vec<UIFile>
+    uifiles: Vec<UIFile>,
+    icon_cache: Vec<CachedIcon>
 }
-
+struct CachedIcon {
+    path: String,
+    icon: String
+}
 #[derive(Debug, Clone)]
 enum Message {
     FileClicked(usize),
@@ -52,7 +56,7 @@ struct UIFile {
     name: String,
     original_index: usize,
     selected: bool,
-    icon: String
+    icon: String,
 }
 
 fn ui_file_to_btn<'a>(lazy: UIFile) -> Column<'a, Message> {
@@ -119,7 +123,7 @@ fn clip_file_name(name: String) -> String {
         name
     }  
 }
-fn get_file_icon(filetype: FileType, path: String) -> String {
+fn cacheless_get_file_icon(filetype: FileType, path: String) -> String {
     match filetype {
         FileType::File => {
             let mut mimetype = get_file_mimetype(path).replace("/", "-");
@@ -187,7 +191,7 @@ impl Narwhal {
                     Some(value) => value == i,
                     None => false
                 };
-                let icon = get_file_icon(get_file_type(metadata.clone()), path.clone());
+                let icon = self.get_file_icon(get_file_type(metadata.clone()), path.clone());
                 let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
                 self.uifiles.push(uifile);
             }
@@ -201,6 +205,23 @@ impl Narwhal {
         };
         for path in read_output {
             self.files.push(path.unwrap())
+        }
+    }
+    fn get_file_icon(&mut self, filetype: FileType, path: String) -> String {
+        let mut icon_out = None;
+        for cached_value in &self.icon_cache {
+            if path == cached_value.path {
+                icon_out = Some(cached_value.icon.clone());
+                break;
+            }
+        }
+        match icon_out {
+            Some(icon) => icon,
+            None => {
+                let output = cacheless_get_file_icon(filetype, path.clone());
+                self.icon_cache.push(CachedIcon { path: path, icon: output.clone() });
+                output
+            }
         }
     }
 }
@@ -249,11 +270,11 @@ impl Default for Narwhal {
                 Err(x) => panic!("{}", x)
             };
             let selected = false;
-            let icon = get_file_icon(get_file_type(metadata.clone()), path.clone());
+            let icon = cacheless_get_file_icon(get_file_type(metadata.clone()), path.clone());
             let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
             uifiles.push(uifile);
         }
-        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5, show_hidden: true, desired_rows: 5, last_clicked_file: None, uifiles: uifiles}
+        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5, show_hidden: true, desired_rows: 5, last_clicked_file: None, uifiles: uifiles, icon_cache: vec![]}
     }
 }
 

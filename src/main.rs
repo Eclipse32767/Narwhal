@@ -37,7 +37,7 @@ struct Narwhal {
     last_clicked_file: Option<usize>,
     uifiles: Vec<UIFile>,
     icon_cache: HashMap<String, String>,
-    bookmarked_dirs: Vec<BookmarkDir>
+    bookmarked_dirs: Vec<BookmarkDir>,
 }
 fn get_cache_home() -> String {
     match env::var("XDG_CACHE_HOME") {
@@ -288,6 +288,64 @@ impl Narwhal {
             }
         }
     }
+    fn interact_selected_entry(&mut self, index: usize) {
+        match self.last_clicked_file {
+            Some(x) => {
+                if x == index {
+                    let filetype = get_file_type(self.files[x].metadata().expect("this should never happen"));
+                    match filetype {
+                        FileType::File => {
+                            let filename = self.files[x].path().display().to_string();
+                            Command::new("open").arg(filename).spawn().expect("oops");
+                        }
+                        FileType::Folder => {
+                            let filename = self.files[x].path().display().to_string();
+                            self.currentpath.push(filename);
+                            self.regen_files();
+                            sort_file_by_type(&mut self.files, self.sorttype.clone());
+                        }
+                        FileType::Link =>{
+                        }
+                    }
+                    self.last_clicked_file = None;
+                } else {
+                    self.last_clicked_file = Some(index);
+                }
+                self.regen_uifiles();
+            }
+            None => {
+                self.last_clicked_file = Some(index);
+                self.regen_uifiles();
+            }
+        }
+    }
+    fn go_back_directory(&mut self) {
+        self.currentpath.pop();
+        self.regen_files();
+        sort_file_by_type(&mut self.files, self.sorttype.clone());
+        self.last_clicked_file = None;
+        self.regen_uifiles();
+    }
+    fn change_sort(&mut self, reverse: bool) {
+        if reverse {
+            self.sorttype = match self.sorttype {
+                SortType::Alphabetical => SortType::Files,
+                SortType::Reverse => SortType::Alphabetical,
+                SortType::Folders => SortType::Reverse,
+                SortType::Files => SortType::Folders,
+            };
+        } else {
+            self.sorttype = match self.sorttype {
+                SortType::Alphabetical => SortType::Reverse,
+                SortType::Reverse => SortType::Folders,
+                SortType::Folders => SortType::Files,
+                SortType::Files => SortType::Alphabetical,
+            }; 
+        }
+        sort_file_by_type(&mut self.files, self.sorttype.clone());
+        self.last_clicked_file = None;
+        self.regen_uifiles();
+    }
 }
 fn sort_file_by_type(input: &mut Vec<DirEntry>, sort_type: SortType) {
     match sort_type {
@@ -376,56 +434,15 @@ impl Application for Narwhal {
         };
         match message {
             Message::FileClicked(x) => {
-                match self.last_clicked_file {
-                    Some(value) => {
-                        if value == x {
-                            let filetype = get_file_type(self.files[x].metadata().expect("this should never happen"));
-                            match filetype {
-                                FileType::File => {
-                                    let filename = self.files[x].path().display().to_string();
-                                    Command::new("open").arg(filename).spawn().expect("oops");
-                                }
-                                FileType::Folder => {
-                                    self.currentpath.push(tempfiles[x].clone());
-                                    self.regen_files();
-                                    sort_file_by_type(&mut self.files, self.sorttype.clone());
-                                }
-                                FileType::Link => {
-
-                                }
-                            }
-                            self.last_clicked_file = None;
-                            self.regen_uifiles();
-                        } else {
-                            self.last_clicked_file = Some(x);
-                            self.regen_uifiles();
-                        }
-                    }
-                    None => {
-                        self.last_clicked_file = Some(x);
-                        self.regen_uifiles();
-                    }
-                }
+                self.interact_selected_entry(x);
                 iced::Command::none()
             },
             Message::GoBack => {
-                self.currentpath.pop();
-                self.regen_files();
-                sort_file_by_type(&mut self.files, self.sorttype.clone());
-                self.last_clicked_file = None;
-                self.regen_uifiles();
+                self.go_back_directory();
                 iced::Command::none()
             },
             Message::SortChanged => {
-                self.sorttype = match self.sorttype {
-                    SortType::Alphabetical => SortType::Reverse,
-                    SortType::Reverse => SortType::Folders,
-                    SortType::Folders => SortType::Files,
-                    SortType::Files => SortType::Alphabetical,
-                };
-                sort_file_by_type(&mut self.files, self.sorttype.clone());
-                self.last_clicked_file = None;
-                self.regen_uifiles();
+                self.change_sort(false);
                 iced::Command::none()
             }
             Message::HiddenChanged => {
@@ -462,7 +479,119 @@ impl Application for Narwhal {
                 self.regen_uifiles();
                 iced::Command::none()
             }
-            Message::KeyboardUpdate(_kb_event) => {
+            Message::KeyboardUpdate(kb_event) => {
+                match kb_event {
+                    iced::keyboard::Event::KeyPressed { key_code, modifiers } => {
+                        if key_code == iced::keyboard::KeyCode::Left {
+                            let mut old_index = self.uifiles.len() - 1;
+                            for i in 0..self.uifiles.len() {
+                                match self.last_clicked_file {
+                                    Some(x) => {
+                                        if self.uifiles[i].original_index == x && i != 0{
+                                            old_index = i - 1;
+                                            break;
+                                        }
+                                    },
+                                    None => {},
+                                }
+                            }
+                            self.last_clicked_file = Some(self.uifiles[old_index].original_index);
+                            self.regen_uifiles();
+                        }
+                        if key_code == iced::keyboard::KeyCode::Right {
+                            let mut old_index = 0;
+                            for i in 0..self.uifiles.len() {
+                                match self.last_clicked_file {
+                                    Some(x) => {
+                                        if self.uifiles[i].original_index == x && i != self.uifiles.len() - 1 {
+                                            old_index = i + 1;
+                                            break;
+                                        }
+                                    },
+                                    None => {},
+                                }
+                            }
+                            self.last_clicked_file = Some(self.uifiles[old_index].original_index);
+                            self.regen_uifiles();
+                        }
+                        if key_code == iced::keyboard::KeyCode::Down {
+                            let mut old_index = None;
+                            for i in 0..self.uifiles.len() {
+                                match self.last_clicked_file {
+                                    Some(x) => {
+                                        if self.uifiles[i].original_index == x {
+                                            old_index = Some(i);
+                                            break;
+                                        }
+                                    },
+                                    None => {},
+                                }
+                            }
+                            old_index = match old_index {
+                                Some(x) => {
+                                    if self.desired_cols as usize + x < self.uifiles.len() {
+                                        Some(x + self.desired_cols as usize)
+                                    } else {
+                                        Some(x % self.desired_cols as usize)
+                                    }
+                                }
+                                None => {
+                                    Some(0)
+                                }
+                            };
+                            self.last_clicked_file = Some(self.uifiles[old_index.unwrap()].original_index);
+                            self.regen_uifiles();
+                        }
+                        if key_code == iced::keyboard::KeyCode::Up {
+                            let mut old_index = None;
+                            for i in 0..self.uifiles.len() {
+                                match self.last_clicked_file {
+                                    Some(x) => {
+                                        if self.uifiles[i].original_index == x {
+                                            old_index = Some(i);
+                                            break;
+                                        }
+                                    },
+                                    None => {},
+                                }
+                            }
+                            old_index = match old_index {
+                                Some(x) => {
+                                    if x >= self.desired_cols as usize {
+                                        Some(x - self.desired_cols as usize)
+                                    } else {
+                                        let mut offset = x % self.desired_cols as usize;
+                                        offset = self.desired_cols as usize - offset;
+                                        offset = self.uifiles.len() - offset;
+                                        Some(offset)
+                                    }
+                                }
+                                None => {
+                                    Some(0)
+                                }
+                            };
+                            self.last_clicked_file = Some(self.uifiles[old_index.unwrap()].original_index);
+                            self.regen_uifiles();
+                        }
+                        if key_code == iced::keyboard::KeyCode::Enter {
+                            match self.last_clicked_file {
+                                Some(x) => self.interact_selected_entry(x),
+                                None => {}
+                            }
+                        }
+                        if key_code == iced::keyboard::KeyCode::Backspace {
+                            self.go_back_directory();
+                        }
+                        if key_code == iced::keyboard::KeyCode::S && modifiers == iced::keyboard::Modifiers::SHIFT {
+                            self.change_sort(true);
+                        } else if key_code == iced::keyboard::KeyCode::S {
+                            self.change_sort(false);
+                        }
+                    },
+                    iced::keyboard::Event::KeyReleased { key_code: _, modifiers: _ } => {},
+                    iced::keyboard::Event::CharacterReceived(_) => {},
+                    iced::keyboard::Event::ModifiersChanged(_) => {},
+                }
                 iced::Command::none()
             }
             Message::WindowUpdate(win_event) => {

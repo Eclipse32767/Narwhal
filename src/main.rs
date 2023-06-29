@@ -197,10 +197,11 @@ fn foldercmp(a: &DirEntry, b: &DirEntry, folders_first: bool) -> std::cmp::Order
 }
 impl Narwhal {
     fn regen_uifiles(&mut self) {
+        let mut items_flushed = 0;
         let max_iter = self.desired_cols * self.desired_rows;
         self.uifiles = vec![];
         for i in 0..self.files.len() {
-            if i == max_iter as usize {
+            if items_flushed == max_iter {
                 break;
             }
             let name = self.files[i].file_name().to_string_lossy().to_string();
@@ -219,6 +220,7 @@ impl Narwhal {
                 let icon = self.get_file_icon(get_file_type(metadata.clone()), path.clone());
                 let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
                 self.uifiles.push(uifile);
+                items_flushed = items_flushed + 1;
             }
         }
     }
@@ -474,19 +476,13 @@ impl Application for Narwhal {
         }
         let mut file_listing = Column::new();
         let mut temprow = Row::new();
-        let mut rows_entered = 0;
         for i in 0..self.uifiles.len() {
-            if self.desired_rows >= rows_entered {
-                let full = ui_file_to_btn(self.uifiles[i].clone());
-                if i % self.desired_cols as usize == 0 {
-                    file_listing = file_listing.push(temprow);
-                    temprow = Row::new().spacing(SPACING);
-                    rows_entered = rows_entered + 1;
-                }
-                if self.desired_rows != rows_entered-1 {
-                    temprow = temprow.push(full);
-                }
+            let full = ui_file_to_btn(self.uifiles[i].clone());
+            if i % self.desired_cols as usize == 0 {
+                file_listing = file_listing.push(temprow);
+                temprow = Row::new().spacing(SPACING);
             }
+            temprow = temprow.push(full);
         }
         file_listing = file_listing.push(temprow);
         let row_test = Row::new().push(function_buttons).push(file_listing).spacing(SPACING);

@@ -641,14 +641,15 @@ impl Application for Narwhal {
     }
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
         let back_btn = Button::new("Back").on_press(Message::GoBack).width(SIDEBAR_WIDTH);
-        let sort_btn = Button::new("Sort").on_press(Message::SortChanged).width(SIDEBAR_WIDTH);
-        let hidden_btn = Button::new("Hidden").on_press(Message::HiddenChanged).width(SIDEBAR_WIDTH);
-        let bookmark_btn = Button::new("Bookmark").on_press(Message::BookmarkCurrent).width(SIDEBAR_WIDTH);
-        let mut function_buttons = Column::new().push(back_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn);
+        let sort_btn = Button::new("Sort").on_press(Message::SortChanged);
+        let hidden_btn = Button::new("Hidden").on_press(Message::HiddenChanged);
+        let bookmark_btn = Button::new("Bookmark").on_press(Message::BookmarkCurrent);
+        let function_buttons = Row::new().push(sort_btn).push(hidden_btn).push(bookmark_btn);
+        let mut bookmark_buttons = Column::new().push(back_btn);
         for i in 0..self.bookmarked_dirs.len() {
             let btn_text = Text::new(self.bookmarked_dirs[i].name.clone());
             let btn = Button::new(btn_text).on_press(Message::BookmarkClicked(i)).width(SIDEBAR_WIDTH);
-            function_buttons = function_buttons.push(btn)
+            bookmark_buttons = bookmark_buttons.push(btn)
         }
         let mut file_listing = Column::new();
         let mut temprow = Row::new();
@@ -661,7 +662,8 @@ impl Application for Narwhal {
             temprow = temprow.push(full);
         }
         file_listing = file_listing.push(temprow);
-        let row_test = Row::new().push(function_buttons).push(file_listing).spacing(SPACING);
+        let col_test = Column::new().push(function_buttons).push(file_listing);
+        let row_test = Row::new().push(bookmark_buttons).push(col_test);
         Container::new(row_test).width(Length::Fill).height(Length::Fill).into()
     }
     fn subscription(&self) -> iced::Subscription<Message> {

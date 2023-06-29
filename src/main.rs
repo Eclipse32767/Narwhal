@@ -300,8 +300,11 @@ impl Default for Narwhal {
             uifiles.push(uifile);
         }
         let cache_home = format!("{}/NarwhalFM", get_cache_home());
-        let cache_text = fs::read_to_string(cache_home).unwrap();
-        let cache_struct: FlushCache = toml::from_str(&cache_text).unwrap();
+        let cache_text = fs::read_to_string(cache_home);
+        let cache_struct: FlushCache = match cache_text {
+            Ok(x) => toml::from_str(&x).unwrap(),
+            Err(..) => FlushCache { icons: vec![] }
+        };
         Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5, show_hidden: true, desired_rows: 5, last_clicked_file: None, uifiles: uifiles, icon_cache: cache_struct.icons.clone(), bookmarked_dirs: vec![]}
     }
 }

@@ -189,12 +189,12 @@ fn cacheless_get_file_icon(filetype: FileType, path: String) -> String {
     match filetype {
         FileType::File => {
             let mut mimetype = get_file_mimetype(path).replace("/", "-");
-            match lookup(&mimetype).with_cache().with_theme(&THEME).find() {
+            match lookup(&mimetype).with_cache().with_size(32).with_theme(&THEME).find() {
                 Some(x) => x.to_string_lossy().to_string(),
                 None => {
                     println!("{mimetype}");
                     mimetype = clean_bad_mime(mimetype);
-                    match lookup(&mimetype).with_cache().with_theme(&THEME).find() {
+                    match lookup(&mimetype).with_cache().with_size(32).with_theme(&THEME).find() {
                         Some(x) => x.to_string_lossy().to_string(),
                         None => format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR"))
                     }
@@ -202,7 +202,7 @@ fn cacheless_get_file_icon(filetype: FileType, path: String) -> String {
             }
         }
         FileType::Folder => {
-            lookup("folder").with_cache().with_theme(&THEME).find().unwrap().to_string_lossy().to_string()
+            lookup("folder").with_cache().with_size(32).with_theme(&THEME).find().unwrap().to_string_lossy().to_string()
         }
         FileType::Link => {
             format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR"))
@@ -274,7 +274,7 @@ impl Narwhal {
     fn get_file_icon(&mut self, filetype: FileType, path: String) -> String {
         let icon_out = self.icon_cache.get(&path);
         match icon_out {
-            Some(icon) => match lookup(icon).with_cache().with_theme(THEME).find() {
+            Some(icon) => match lookup(icon).with_cache().with_size(32).with_theme(THEME).find() {
                 Some(x) => x.to_string_lossy().to_string(),
                 None => format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR"))
             }

@@ -3,6 +3,7 @@ use iced::widget::{Button, Text, Row, Column, Container, svg};
 use iced::theme;
 use iced_style::Theme;
 use serde_derive::{Serialize, Deserialize};
+use std::collections::HashMap;
 use std::fs::{DirEntry, Metadata};
 use std::{env, fs, vec};
 use std::path::{PathBuf};
@@ -33,7 +34,7 @@ struct Narwhal {
     show_hidden: bool,
     last_clicked_file: Option<usize>,
     uifiles: Vec<UIFile>,
-    icon_cache: Vec<CachedIcon>,
+    icon_cache: HashMap<String, String>,
     bookmarked_dirs: Vec<BookmarkDir>
 }
 fn get_cache_home() -> String {
@@ -60,6 +61,10 @@ struct Config {
     sort_mode: String,
     show_hidden: bool,
     bookmarks: Vec<BookmarkDir>
+}
+#[derive(Serialize, Deserialize, Clone)]
+struct CacheFile {
+    contents: HashMap<String, String>
 }
 fn encode_sort(sort_type: SortType) -> String {
     match sort_type {
@@ -269,18 +274,12 @@ impl Narwhal {
         }
     }
     fn get_file_icon(&mut self, filetype: FileType, path: String) -> String {
-        let mut icon_out = None;
-        for cached_value in &self.icon_cache {
-            if path == cached_value.path {
-                icon_out = Some(cached_value.icon.clone());
-                break;
-            }
-        }
+        let icon_out = self.icon_cache.get(&path);
         match icon_out {
-            Some(icon) => icon,
+            Some(icon) => icon.to_string(),
             None => {
                 let output = cacheless_get_file_icon(filetype, path.clone());
-                self.icon_cache.push(CachedIcon { path: path, icon: output.clone() });
+                self.icon_cache.insert(path, output.clone());
                 output
             }
         }
@@ -337,9 +336,9 @@ impl Default for Narwhal {
         }
         let cache_home = format!("{}/NarwhalFM", get_cache_home());
         let cache_text = fs::read_to_string(cache_home);
-        let cache_struct: FlushCache = match cache_text {
+        let cache_struct: CacheFile = match cache_text {
             Ok(x) => toml::from_str(&x).unwrap(),
-            Err(..) => FlushCache { icons: vec![] }
+            Err(..) => CacheFile { contents: HashMap::new() }
         };
         let config_home = format!("{}/NarwhalFM.toml", get_config_home());
         let config_text = fs::read_to_string(config_home);
@@ -347,7 +346,7 @@ impl Default for Narwhal {
             Ok(x) => toml::from_str(&x).unwrap(),
             Err(..) => Config { sort_mode: "Folder".to_string(), show_hidden: false, bookmarks: vec![] }
         };
-        Narwhal { files: filelist, currentpath: current_dir, sorttype: decode_sort(config_struct.sort_mode), desired_cols: 5, show_hidden: config_struct.show_hidden, desired_rows: 5, last_clicked_file: None, uifiles: uifiles, icon_cache: cache_struct.icons.clone(), bookmarked_dirs: config_struct.bookmarks.clone()}
+        Narwhal { files: filelist, currentpath: current_dir, sorttype: decode_sort(config_struct.sort_mode), desired_cols: 5, show_hidden: config_struct.show_hidden, desired_rows: 5, last_clicked_file: None, uifiles: uifiles, icon_cache: cache_struct.contents.clone(), bookmarked_dirs: config_struct.bookmarks.clone()}
     }
 }
 
@@ -488,7 +487,7 @@ impl Application for Narwhal {
                     },
                     iced::window::Event::RedrawRequested(_) => {iced::Command::none()},
                     iced::window::Event::CloseRequested => {
-                        let yes = FlushCache { icons: self.icon_cache.clone() };
+                        let yes = CacheFile { contents: self.icon_cache.clone() };
                         let cached_contents = toml::to_string(&yes).unwrap();
                         let cache_home = format!("{}/NarwhalFM", get_cache_home());
                         fs::write(cache_home, cached_contents).unwrap();

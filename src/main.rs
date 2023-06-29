@@ -50,9 +50,43 @@ struct CachedIcon {
     path: String,
     icon: String
 }
+#[derive(Serialize, Deserialize, Clone)]
 struct BookmarkDir {
     name: String,
     path: String
+}
+#[derive(Serialize, Deserialize, Clone)]
+struct Config {
+    sort_mode: String,
+    show_hidden: bool,
+    bookmarks: Vec<BookmarkDir>
+}
+fn encode_sort(sort_type: SortType) -> String {
+    match sort_type {
+        SortType::Alphabetical => "Alphabetical".to_string(),
+        SortType::Reverse => "Reverse".to_string(),
+        SortType::Folders => "Folders".to_string(),
+        SortType::Files => "Files".to_string(),
+    }
+}
+fn decode_sort(sort_type: String) -> SortType {
+    let test = String::as_str(&sort_type);
+    match test {
+        "Alphabetical" => SortType::Alphabetical,
+        "Reverse" => SortType::Reverse,
+        "Folders" => SortType::Folders,
+        "Files" => SortType::Files,
+        &_ => SortType::Folders
+    }
+}
+fn get_config_home() -> String {
+    match env::var("XDG_CONFIG_HOME") {
+        Ok(x) => x,
+        Err(..) => match env::var("HOME") {
+            Ok(x) => format!("{x}/.config"),
+            Err(..) => panic!("bailing out, you're on your own")
+        }
+    }
 }
 #[derive(Debug, Clone)]
 enum Message {
@@ -307,7 +341,13 @@ impl Default for Narwhal {
             Ok(x) => toml::from_str(&x).unwrap(),
             Err(..) => FlushCache { icons: vec![] }
         };
-        Narwhal { files: filelist, currentpath: current_dir, sorttype: SortType::Alphabetical, desired_cols: 5, show_hidden: true, desired_rows: 5, last_clicked_file: None, uifiles: uifiles, icon_cache: cache_struct.icons.clone(), bookmarked_dirs: vec![]}
+        let config_home = format!("{}/NarwhalFM.toml", get_config_home());
+        let config_text = fs::read_to_string(config_home);
+        let config_struct: Config = match config_text {
+            Ok(x) => toml::from_str(&x).unwrap(),
+            Err(..) => Config { sort_mode: "Folder".to_string(), show_hidden: false, bookmarks: vec![] }
+        };
+        Narwhal { files: filelist, currentpath: current_dir, sorttype: decode_sort(config_struct.sort_mode), desired_cols: 5, show_hidden: config_struct.show_hidden, desired_rows: 5, last_clicked_file: None, uifiles: uifiles, icon_cache: cache_struct.icons.clone(), bookmarked_dirs: config_struct.bookmarks.clone()}
     }
 }
 
@@ -452,6 +492,10 @@ impl Application for Narwhal {
                         let cached_contents = toml::to_string(&yes).unwrap();
                         let cache_home = format!("{}/NarwhalFM", get_cache_home());
                         fs::write(cache_home, cached_contents).unwrap();
+                        let config_file = Config { sort_mode: encode_sort(self.sorttype.clone()), show_hidden: self.show_hidden, bookmarks: self.bookmarked_dirs.clone() };
+                        let config_text = toml::to_string(&config_file).unwrap();
+                        let config_home = format!("{}/NarwhalFM.toml", get_config_home());
+                        fs::write(config_home, config_text).unwrap();
                         iced::window::close()
                     },
                     iced::window::Event::Focused => {iced::Command::none()},

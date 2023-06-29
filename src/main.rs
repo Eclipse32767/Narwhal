@@ -24,6 +24,8 @@ const FONT_SIZE: u16 = 16;
 const SPACING: u16 = 10;
 const MAX_LENGTH: usize = 10;
 const SIDEBAR_WIDTH: u16 = 75;
+const THEME: &str = "breeze";
+const IMAGE_SCALE: u16 = 64;
 
 struct Narwhal {
     files: Vec<DirEntry>,
@@ -122,7 +124,7 @@ struct UIFile {
 fn ui_file_to_btn<'a>(lazy: UIFile) -> Column<'a, Message> {
     let file_icon = lazy.icon.clone();
     let handle = svg::Handle::from_path(file_icon);
-    let image = svg(handle);
+    let image = svg(handle).height(IMAGE_SCALE).width(IMAGE_SCALE);
     let text = Text::new(clip_file_name(lazy.name.clone())).size(FONT_SIZE);
     let button = if lazy.selected {
         Button::new(image).on_press(Message::FileClicked(lazy.original_index))
@@ -187,12 +189,12 @@ fn cacheless_get_file_icon(filetype: FileType, path: String) -> String {
     match filetype {
         FileType::File => {
             let mut mimetype = get_file_mimetype(path).replace("/", "-");
-            match lookup(&mimetype).with_cache().with_size(64).with_theme("breeze").find() {
+            match lookup(&mimetype).with_cache().with_theme(&THEME).find() {
                 Some(x) => x.to_string_lossy().to_string(),
                 None => {
                     println!("{mimetype}");
                     mimetype = clean_bad_mime(mimetype);
-                    match lookup(&mimetype).with_cache().with_size(64).with_theme("breeze").find() {
+                    match lookup(&mimetype).with_cache().with_theme(&THEME).find() {
                         Some(x) => x.to_string_lossy().to_string(),
                         None => format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR"))
                     }
@@ -200,7 +202,7 @@ fn cacheless_get_file_icon(filetype: FileType, path: String) -> String {
             }
         }
         FileType::Folder => {
-            lookup("folder").with_cache().with_size(64).with_theme("breeze").find().unwrap().to_string_lossy().to_string()
+            lookup("folder").with_cache().with_theme(&THEME).find().unwrap().to_string_lossy().to_string()
         }
         FileType::Link => {
             format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR"))
@@ -272,10 +274,16 @@ impl Narwhal {
     fn get_file_icon(&mut self, filetype: FileType, path: String) -> String {
         let icon_out = self.icon_cache.get(&path);
         match icon_out {
-            Some(icon) => icon.to_string(),
+            Some(icon) => match lookup(icon).with_cache().with_theme(THEME).find() {
+                Some(x) => x.to_string_lossy().to_string(),
+                None => format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR"))
+            }
             None => {
                 let output = cacheless_get_file_icon(filetype, path.clone());
-                self.icon_cache.insert(path, output.clone());
+                let altered: Vec<&str> = output.split("/").collect();
+                let file = altered[altered.len()-1];
+                let extensionless: Vec<&str> = file.split(".").collect();
+                self.icon_cache.insert(path, extensionless[0].to_string());
                 output
             }
         }

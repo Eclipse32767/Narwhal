@@ -104,10 +104,6 @@ enum Message {
     BookmarkCurrent,
     BookmarkClicked(usize),
 }
-#[derive(Serialize, Deserialize)]
-struct FlushCache {
-    icons: Vec<CachedIcon>
-}
 
 #[derive(PartialEq)]
 enum FileType {

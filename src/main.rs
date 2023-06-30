@@ -560,10 +560,17 @@ impl Application for Narwhal {
                                     if x >= self.desired_cols as usize {
                                         Some(x - self.desired_cols as usize)
                                     } else {
-                                        let mut offset = x % self.desired_cols as usize;
-                                        offset = self.desired_cols as usize - offset;
-                                        offset = self.uifiles.len() - offset;
-                                        Some(offset)
+                                        let length = (self.uifiles.len() - 1) as u32;
+                                        let offset = x as u32;
+                                        let mut final_value = 0;
+                                        for i in 0..self.desired_rows {
+                                            if i*self.desired_cols+offset > length {
+                                                final_value = i-1;
+                                                final_value = final_value*self.desired_cols+offset;
+                                                break;
+                                            }
+                                        }
+                                        Some(final_value as usize)
                                     }
                                 }
                                 None => {
@@ -586,6 +593,10 @@ impl Application for Narwhal {
                             self.change_sort(true);
                         } else if key_code == iced::keyboard::KeyCode::S {
                             self.change_sort(false);
+                        }
+                        if key_code == iced::keyboard::KeyCode::H {
+                            self.show_hidden = !self.show_hidden;
+                            self.regen_uifiles();
                         }
                     },
                     iced::keyboard::Event::KeyReleased { key_code: _, modifiers: _ } => {},

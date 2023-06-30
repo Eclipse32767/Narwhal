@@ -187,13 +187,6 @@ fn clip_file_name(name: String) -> String {
         name
     }  
 }
-fn get_link_file_type(path: String) -> Option<FileType> {
-    let realpath = fs::read_link(path).unwrap();
-    match realpath.metadata() {
-        Ok(x) => Some(get_file_type(x)),
-        Err(..) => None
-    }
-}
 fn cacheless_get_file_icon(path: String) -> String {
     let mut mimetype = get_file_mimetype(path.clone()).replace("/", "-");
     if mimetype == "inode-directory" {
@@ -293,34 +286,36 @@ impl Narwhal {
         match self.last_clicked_file {
             Some(x) => {
                 if x == index {
-                    let filetype = get_file_type(self.files[x].metadata().expect("this should never happen"));
-                    match filetype {
-                        FileType::File => {
-                            let filename = self.files[x].path().display().to_string();
-                            Command::new("open").arg(filename).spawn().expect("oops");
-                        }
-                        FileType::Folder => {
-                            let filename = self.files[x].path().display().to_string();
-                            self.currentpath.push(filename);
+                    let metadata = self.files[x].metadata().unwrap();
+                    if metadata.is_symlink() {
+                        let mime = get_file_mimetype(self.files[x].path().to_string_lossy().to_string()).replace("/", "-");
+                        let path = fs::read_link(self.files[x].path().to_string_lossy().to_string()).unwrap();
+                        if mime == "inode-directory" {
+                            let pathtxt = path.to_string_lossy().to_string();
+                            let pathchars: Vec<char> = pathtxt.chars().collect();
+                            let cleanpath = if pathchars[0] == '/' {
+                                pathtxt
+                            } else {
+                                format!("/{}", pathtxt)
+                            };
+                            self.currentpath = PathBuf::from(cleanpath);
+                            println!("{}", self.currentpath.to_string_lossy());
                             self.regen_files();
                             sort_file_by_type(&mut self.files, self.sorttype.clone());
+                        } else {
+                            Command::new("open").arg(path.to_string_lossy().to_string()).spawn().expect("oops");
                         }
-                        FileType::Link =>{
-                            let path = self.files[x].path().display().to_string();
-                            match get_link_file_type(path.clone()) {
-                                Some(file_type) => match file_type {
-                                    FileType::Folder => {
-                                        self.currentpath = PathBuf::from(path);
-                                        self.regen_files();
-                                        sort_file_by_type(&mut self.files, self.sorttype.clone());
-                                    },
-                                    FileType::File => {
-                                        Command::new("open").arg(path).spawn().expect("oops");
-                                    },
-                                    FileType::Link => {},
-                                }
-                                None => {}
-                            }
+                    } else {
+                        let mime = get_file_mimetype(self.files[x].path().to_string_lossy().to_string()).replace("/", "-");
+                        if mime == "inode-directory" {
+                            let filename = self.files[x].path().display().to_string();
+                            self.currentpath.push(filename);
+                            println!("{}", self.currentpath.to_string_lossy());
+                            self.regen_files();
+                            sort_file_by_type(&mut self.files, self.sorttype.clone());
+                        } else {
+                            let filename = self.files[x].path().display().to_string();
+                            Command::new("open").arg(filename).spawn().expect("oops");
                         }
                     }
                     self.last_clicked_file = None;

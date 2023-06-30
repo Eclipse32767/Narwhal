@@ -276,7 +276,13 @@ impl Narwhal {
         match icon_out {
             Some(icon) => match lookup(icon).with_cache().with_size(32).with_theme(THEME).find() {
                 Some(x) => x.to_string_lossy().to_string(),
-                None => format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR"))
+                None => {
+                    let newicon = clean_bad_mime(icon.clone());
+                    match lookup(&newicon).with_cache().with_size(32).with_theme(THEME).find() {
+                        Some(x) => x.to_string_lossy().to_string(),
+                        None => format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR"))
+                    }
+                }
             }
             None => {
                 let output = cacheless_get_file_icon(filetype, path.clone());

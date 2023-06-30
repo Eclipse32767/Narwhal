@@ -146,6 +146,8 @@ fn clean_bad_mime(mime: String) -> String {
     let category = substrings_type[0].to_string();
     if category == "application".to_string() {
         String::from("application-x-executable")
+    } else if mime == "inode-directory" {
+        String::from("folder")
     } else {
         format!("{}-x-generic", category)
     }
@@ -185,27 +187,27 @@ fn clip_file_name(name: String) -> String {
         name
     }  
 }
-fn cacheless_get_file_icon(filetype: FileType, path: String) -> String {
-    match filetype {
-        FileType::File => {
-            let mut mimetype = get_file_mimetype(path).replace("/", "-");
-            match lookup(&mimetype).with_cache().with_size(32).with_theme(&THEME).find() {
-                Some(x) => x.to_string_lossy().to_string(),
-                None => {
-                    println!("{mimetype}");
-                    mimetype = clean_bad_mime(mimetype);
-                    match lookup(&mimetype).with_cache().with_size(32).with_theme(&THEME).find() {
-                        Some(x) => x.to_string_lossy().to_string(),
-                        None => format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR"))
-                    }
+fn get_link_file_type(path: String) -> Option<FileType> {
+    let realpath = fs::read_link(path).unwrap();
+    match realpath.metadata() {
+        Ok(x) => Some(get_file_type(x)),
+        Err(..) => None
+    }
+}
+fn cacheless_get_file_icon(path: String) -> String {
+    let mut mimetype = get_file_mimetype(path.clone()).replace("/", "-");
+    if mimetype == "inode-directory" {
+        String::from("folder")
+    } else {
+        match lookup(&mimetype).with_cache().with_size(32).with_theme(&THEME).find() {
+            Some(..) => mimetype,
+            None => {
+                mimetype = clean_bad_mime(mimetype);
+                match lookup(&mimetype).with_cache().with_size(32).with_theme(&THEME).find() {
+                    Some(..) => mimetype,
+                    None => format!("text-x-generic")
                 }
             }
-        }
-        FileType::Folder => {
-            lookup("folder").with_cache().with_size(32).with_theme(&THEME).find().unwrap().to_string_lossy().to_string()
-        }
-        FileType::Link => {
-            format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR"))
         }
     }
 }
@@ -246,15 +248,11 @@ impl Narwhal {
             if !self.show_hidden && chars[0] == '.' {
             } else {
                 let path = self.files[i].path().to_string_lossy().to_string();
-                let metadata = match self.files[i].metadata() {
-                    Ok(x) => x,
-                    Err(x) => panic!("{}", x)
-                };
                 let selected = match self.last_clicked_file {
                     Some(value) => value == i,
                     None => false
                 };
-                let icon = self.get_file_icon(get_file_type(metadata.clone()), path.clone());
+                let icon = self.get_file_icon(path.clone());
                 let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
                 self.uifiles.push(uifile);
                 items_flushed = items_flushed + 1;
@@ -271,7 +269,7 @@ impl Narwhal {
             self.files.push(path.unwrap())
         }
     }
-    fn get_file_icon(&mut self, filetype: FileType, path: String) -> String {
+    fn get_file_icon(&mut self, path: String) -> String {
         let icon_out = self.icon_cache.get(&path);
         match icon_out {
             Some(icon) => match lookup(icon).with_cache().with_size(32).with_theme(THEME).find() {
@@ -285,12 +283,9 @@ impl Narwhal {
                 }
             }
             None => {
-                let output = cacheless_get_file_icon(filetype, path.clone());
-                let altered: Vec<&str> = output.split("/").collect();
-                let file = altered[altered.len()-1];
-                let extensionless: Vec<&str> = file.split(".").collect();
-                self.icon_cache.insert(path, extensionless[0].to_string());
-                output
+                let output = cacheless_get_file_icon(path.clone());
+                self.icon_cache.insert(path, output.clone());
+                lookup(&output).with_cache().with_size(32).with_theme(&THEME).find().unwrap().to_string_lossy().to_string()
             }
         }
     }
@@ -311,6 +306,21 @@ impl Narwhal {
                             sort_file_by_type(&mut self.files, self.sorttype.clone());
                         }
                         FileType::Link =>{
+                            let path = self.files[x].path().display().to_string();
+                            match get_link_file_type(path.clone()) {
+                                Some(file_type) => match file_type {
+                                    FileType::Folder => {
+                                        self.currentpath = PathBuf::from(path);
+                                        self.regen_files();
+                                        sort_file_by_type(&mut self.files, self.sorttype.clone());
+                                    },
+                                    FileType::File => {
+                                        Command::new("open").arg(path).spawn().expect("oops");
+                                    },
+                                    FileType::Link => {},
+                                }
+                                None => {}
+                            }
                         }
                     }
                     self.last_clicked_file = None;
@@ -376,32 +386,6 @@ impl Default for Narwhal {
             Ok(x) => x,
             Err(x) => panic!("{}", x)
         };
-        let read_output = match fs::read_dir(current_dir) {
-            Ok(x) => x,
-            Err(x) => panic!("{}", x)
-        };
-        let mut filelist = vec![];
-        for path in read_output {
-            filelist.push(path.unwrap());
-        }
-        sort_file_by_type(&mut filelist, SortType::Alphabetical);
-        let current_dir = match env::current_dir() {
-            Ok(x) => x,
-            Err(x) => panic!("{}", x)
-        };
-        let mut uifiles = vec![];
-        for i in 0..filelist.len() {
-            let name = filelist[i].file_name().to_string_lossy().to_string();
-            let path = filelist[i].path().to_string_lossy().to_string();
-            let metadata = match filelist[i].metadata() {
-                Ok(x) => x,
-                Err(x) => panic!("{}", x)
-            };
-            let selected = false;
-            let icon = cacheless_get_file_icon(get_file_type(metadata.clone()), path.clone());
-            let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
-            uifiles.push(uifile);
-        }
         let cache_home = format!("{}/NarwhalFM", get_cache_home());
         let cache_text = fs::read_to_string(cache_home);
         let cache_struct: CacheFile = match cache_text {
@@ -414,7 +398,10 @@ impl Default for Narwhal {
             Ok(x) => toml::from_str(&x).unwrap(),
             Err(..) => Config { sort_mode: "Folder".to_string(), show_hidden: false, bookmarks: vec![] }
         };
-        Narwhal { files: filelist, currentpath: current_dir, sorttype: decode_sort(config_struct.sort_mode), desired_cols: 5, show_hidden: config_struct.show_hidden, desired_rows: 5, last_clicked_file: None, uifiles: uifiles, icon_cache: cache_struct.contents.clone(), bookmarked_dirs: config_struct.bookmarks.clone()}
+        let mut finalstruct = Narwhal { files: vec![], currentpath: current_dir, sorttype: decode_sort(config_struct.sort_mode), desired_cols: 5, show_hidden: config_struct.show_hidden, desired_rows: 5, last_clicked_file: None, uifiles: vec![], icon_cache: cache_struct.contents.clone(), bookmarked_dirs: config_struct.bookmarks.clone()};
+        finalstruct.regen_files();
+        finalstruct.regen_uifiles();
+        finalstruct
     }
 }
 

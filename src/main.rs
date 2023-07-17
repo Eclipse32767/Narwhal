@@ -6,8 +6,8 @@ use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::fs::{DirEntry, Metadata};
 use std::{env, fs, vec};
-use std::path::{PathBuf};
-use std::process::{Command};
+use std::path::PathBuf;
+use std::process::Command;
 use freedesktop_icons::lookup;
 use xdg_utils::query_mime_info;
 use toml;
@@ -24,7 +24,7 @@ const FONT_SIZE: u16 = 16;
 const SPACING: u16 = 10;
 const MAX_LENGTH: usize = 10;
 const SIDEBAR_WIDTH: u16 = 75;
-const THEME: &str = "breeze";
+const THEME: &str = "Adwaita";
 const IMAGE_SCALE: u16 = 64;
 
 struct Narwhal {
@@ -38,6 +38,7 @@ struct Narwhal {
     uifiles: Vec<UIFile>,
     icon_cache: HashMap<String, String>,
     bookmarked_dirs: Vec<BookmarkDir>,
+    deletion_confirmation: bool,
 }
 fn get_cache_home() -> String {
     match env::var("XDG_CACHE_HOME") {
@@ -105,6 +106,7 @@ enum Message {
     WindowUpdate(iced::window::Event),
     BookmarkCurrent,
     BookmarkClicked(usize),
+    DeleteClicked,
 }
 
 #[derive(PartialEq)]
@@ -357,6 +359,28 @@ impl Narwhal {
         self.last_clicked_file = None;
         self.regen_uifiles();
     }
+    fn rm_file(&mut self, index: usize) {
+        let path = self.files[index].path().to_string_lossy().to_string();
+        let is_directory = match self.files[index].metadata() {
+            Ok(x) => x.is_dir(),
+            Err(..) => false,
+        };
+        if is_directory {
+            match fs::remove_dir_all(path) {
+                Ok(..) => println!("successfully removed"),
+                Err(e) => println!("{e}")
+            }
+        } else {
+            match fs::remove_file(path) {
+                Ok(..) => println!("successfully removed"),
+                Err(e) => println!("{e}")
+            }
+        }
+        self.regen_files();
+        sort_file_by_type(&mut self.files, self.sorttype.clone());
+        self.last_clicked_file = None;
+        self.regen_uifiles();
+    }
 }
 fn sort_file_by_type(input: &mut Vec<DirEntry>, sort_type: SortType) {
     match sort_type {
@@ -393,7 +417,7 @@ impl Default for Narwhal {
             Ok(x) => toml::from_str(&x).unwrap(),
             Err(..) => Config { sort_mode: "Folder".to_string(), show_hidden: false, bookmarks: vec![] }
         };
-        let mut finalstruct = Narwhal { files: vec![], currentpath: current_dir, sorttype: decode_sort(config_struct.sort_mode), desired_cols: 5, show_hidden: config_struct.show_hidden, desired_rows: 5, last_clicked_file: None, uifiles: vec![], icon_cache: cache_struct.contents.clone(), bookmarked_dirs: config_struct.bookmarks.clone()};
+        let mut finalstruct = Narwhal { files: vec![], currentpath: current_dir, sorttype: decode_sort(config_struct.sort_mode), desired_cols: 5, show_hidden: config_struct.show_hidden, desired_rows: 5, last_clicked_file: None, uifiles: vec![], icon_cache: cache_struct.contents.clone(), bookmarked_dirs: config_struct.bookmarks.clone(), deletion_confirmation: false};
         finalstruct.regen_files();
         finalstruct.regen_uifiles();
         finalstruct
@@ -636,14 +660,33 @@ impl Application for Narwhal {
                     iced::window::Event::FilesHoveredLeft => {iced::Command::none()},
                 }
             }
+            Message::DeleteClicked => {
+                match self.last_clicked_file {
+                    Some(x) => {
+                        if self.deletion_confirmation {
+                            self.rm_file(x);
+                        }
+                        self.deletion_confirmation = !self.deletion_confirmation;
+                    }
+                    None => {
+                        self.deletion_confirmation = false;
+                    }
+                }
+                iced::Command::none()
+            }
         }
     }
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
         let back_btn = Button::new("Back").on_press(Message::GoBack).width(SIDEBAR_WIDTH);
         let sort_btn = Button::new("Sort").on_press(Message::SortChanged);
+        let delete_btn = if self.deletion_confirmation {
+            Button::new("Delete").on_press(Message::DeleteClicked).style(theme::Button::Destructive)
+        } else {
+            Button::new("Delete").on_press(Message::DeleteClicked)
+        };
         let hidden_btn = Button::new("Hidden").on_press(Message::HiddenChanged);
         let bookmark_btn = Button::new("Bookmark").on_press(Message::BookmarkCurrent);
-        let function_buttons = Row::new().push(sort_btn).push(hidden_btn).push(bookmark_btn);
+        let function_buttons = Row::new().push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn);
         let mut bookmark_buttons = Column::new().push(back_btn);
         for i in 0..self.bookmarked_dirs.len() {
             let btn_text = Text::new(self.bookmarked_dirs[i].name.clone());

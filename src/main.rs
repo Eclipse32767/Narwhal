@@ -610,7 +610,20 @@ impl Application for Narwhal {
                             self.show_hidden = !self.show_hidden;
                             self.regen_uifiles();
                         }
-                    },
+                        if key_code == iced::keyboard::KeyCode::Minus {
+                            match self.last_clicked_file {
+                                Some(x) => {
+                                    if self.deletion_confirmation {
+                                        self.rm_file(x);
+                                    }
+                                    self.deletion_confirmation = !self.deletion_confirmation;
+                                }
+                                None => {
+                                    self.deletion_confirmation = false;
+                                }
+                            }
+                        }
+                    }
                     iced::keyboard::Event::KeyReleased { key_code: _, modifiers: _ } => {},
                     iced::keyboard::Event::CharacterReceived(_) => {},
                     iced::keyboard::Event::ModifiersChanged(_) => {},

@@ -257,7 +257,6 @@ impl Narwhal {
                 items_flushed = items_flushed + 1;
             }
         }
-        println!("uifiles regenerated!");
     }
     fn regen_files(&mut self) {
         self.files = vec![];
@@ -268,7 +267,6 @@ impl Narwhal {
         for path in read_output {
             self.files.push(path.unwrap())
         }
-        println!("files regenerated!");
     }
     fn get_file_icon(&mut self, path: String) -> String {
         let icon_out = self.icon_cache.get(&path);
@@ -759,7 +757,7 @@ impl Application for Narwhal {
         let delete_btn = if self.deletion_confirmation {
             Button::new("Delete").on_press(Message::DeleteClicked).style(theme::Button::Destructive)
         } else {
-            Button::new("Delete").on_press(Message::DeleteClicked)
+            Button::new("Delete").on_press(Message::DeleteClicked).style(theme::Button::Secondary)
         };
         let mv_btn = match self.mv_target {
             Some(..) => Button::new("Move").on_press(Message::MvClicked),

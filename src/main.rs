@@ -39,6 +39,8 @@ struct Narwhal {
     icon_cache: HashMap<String, String>,
     bookmarked_dirs: Vec<BookmarkDir>,
     deletion_confirmation: bool,
+    mv_target: Option<String>,
+    cp_target: Option<String>,
 }
 fn get_cache_home() -> String {
     match env::var("XDG_CACHE_HOME") {
@@ -107,6 +109,8 @@ enum Message {
     BookmarkCurrent,
     BookmarkClicked(usize),
     DeleteClicked,
+    MvClicked,
+    CpClicked,
 }
 
 #[derive(PartialEq)]
@@ -253,6 +257,7 @@ impl Narwhal {
                 items_flushed = items_flushed + 1;
             }
         }
+        println!("uifiles regenerated!");
     }
     fn regen_files(&mut self) {
         self.files = vec![];
@@ -263,6 +268,7 @@ impl Narwhal {
         for path in read_output {
             self.files.push(path.unwrap())
         }
+        println!("files regenerated!");
     }
     fn get_file_icon(&mut self, path: String) -> String {
         let icon_out = self.icon_cache.get(&path);
@@ -381,6 +387,26 @@ impl Narwhal {
         self.last_clicked_file = None;
         self.regen_uifiles();
     }
+    fn mv_file(&mut self) {
+        let target = self.mv_target.clone().unwrap();
+        let path = self.currentpath.to_string_lossy().to_string();
+        Command::new("mv").arg(target).arg(path).output().unwrap();
+        self.mv_target = None;
+        self.regen_files();
+        sort_file_by_type(&mut self.files, self.sorttype.clone());
+        self.last_clicked_file = None;
+        self.regen_uifiles();
+    }
+    fn cp_file(&mut self) {
+        let target = self.cp_target.clone().unwrap();
+        let path = self.currentpath.to_string_lossy().to_string();
+        Command::new("cp").arg(target).arg(path).output().unwrap();
+        self.cp_target = None;
+        self.regen_files();
+        sort_file_by_type(&mut self.files, self.sorttype.clone());
+        self.last_clicked_file = None;
+        self.regen_uifiles();
+    }
 }
 fn sort_file_by_type(input: &mut Vec<DirEntry>, sort_type: SortType) {
     match sort_type {
@@ -417,7 +443,7 @@ impl Default for Narwhal {
             Ok(x) => toml::from_str(&x).unwrap(),
             Err(..) => Config { sort_mode: "Folder".to_string(), show_hidden: false, bookmarks: vec![] }
         };
-        let mut finalstruct = Narwhal { files: vec![], currentpath: current_dir, sorttype: decode_sort(config_struct.sort_mode), desired_cols: 5, show_hidden: config_struct.show_hidden, desired_rows: 5, last_clicked_file: None, uifiles: vec![], icon_cache: cache_struct.contents.clone(), bookmarked_dirs: config_struct.bookmarks.clone(), deletion_confirmation: false};
+        let mut finalstruct = Narwhal { files: vec![], currentpath: current_dir, sorttype: decode_sort(config_struct.sort_mode), desired_cols: 5, show_hidden: config_struct.show_hidden, desired_rows: 5, last_clicked_file: None, uifiles: vec![], icon_cache: cache_struct.contents.clone(), bookmarked_dirs: config_struct.bookmarks.clone(), deletion_confirmation: false, mv_target: None, cp_target: None};
         finalstruct.regen_files();
         finalstruct.regen_uifiles();
         finalstruct
@@ -687,6 +713,44 @@ impl Application for Narwhal {
                 }
                 iced::Command::none()
             }
+            Message::MvClicked => {
+                match self.mv_target {
+                    Some(..) => {
+                        self.mv_file();
+                    }
+                    None => {
+                        match self.last_clicked_file {
+                            Some(x) => {
+                                let path = self.files[x].path().to_string_lossy().to_string();
+                                self.mv_target = Some(path);
+                            }
+                            None => {
+                                self.mv_target = None;
+                            }
+                        }
+                    }
+                }
+                iced::Command::none()
+            }
+            Message::CpClicked => {
+                match self.cp_target {
+                    Some(..) => {
+                        self.cp_file();
+                    }
+                    None => {
+                        match self.last_clicked_file {
+                            Some(x) => {
+                                let path = self.files[x].path().to_string_lossy().to_string();
+                                self.cp_target = Some(path);
+                            }
+                            None => {
+                                self.cp_target = None;
+                            }
+                        }
+                    }
+                }
+                iced::Command::none()
+            }
         }
     }
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
@@ -697,9 +761,17 @@ impl Application for Narwhal {
         } else {
             Button::new("Delete").on_press(Message::DeleteClicked)
         };
+        let mv_btn = match self.mv_target {
+            Some(..) => Button::new("Move").on_press(Message::MvClicked),
+            None => Button::new("Move").on_press(Message::MvClicked).style(theme::Button::Secondary)
+        };
+        let cp_btn = match self.cp_target {
+            Some(..) => Button::new("Paste").on_press(Message::CpClicked),
+            None => Button::new("Copy").on_press(Message::CpClicked).style(theme::Button::Secondary)
+        };
         let hidden_btn = Button::new("Hidden").on_press(Message::HiddenChanged);
         let bookmark_btn = Button::new("Bookmark").on_press(Message::BookmarkCurrent);
-        let function_buttons = Row::new().push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn);
+        let function_buttons = Row::new().push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn);
         let mut bookmark_buttons = Column::new().push(back_btn);
         for i in 0..self.bookmarked_dirs.len() {
             let btn_text = Text::new(self.bookmarked_dirs[i].name.clone());

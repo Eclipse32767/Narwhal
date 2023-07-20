@@ -1,5 +1,5 @@
 use iced::{Application, Result, Settings, executor, Length};
-use iced::widget::{Button, Text, Row, Column, Container, svg};
+use iced::widget::{Button, Text, Row, Column, Container, svg, Rule};
 use iced::theme;
 use iced_style::Theme;
 use serde_derive::{Serialize, Deserialize};
@@ -23,7 +23,7 @@ const EST_HEIGHT: u32 = 104;
 const FONT_SIZE: u16 = 16;
 const SPACING: u16 = 10;
 const MAX_LENGTH: usize = 10;
-const SIDEBAR_WIDTH: u16 = 75;
+const SIDEBAR_WIDTH: u16 = 100;
 const THEME: &str = "Adwaita";
 const IMAGE_SCALE: u16 = 64;
 
@@ -752,7 +752,7 @@ impl Application for Narwhal {
         }
     }
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
-        let back_btn = Button::new("Back").on_press(Message::GoBack).width(SIDEBAR_WIDTH);
+        let back_btn = Button::new("Back").on_press(Message::GoBack);
         let sort_btn = Button::new("Sort").on_press(Message::SortChanged);
         let delete_btn = if self.deletion_confirmation {
             Button::new("Delete").on_press(Message::DeleteClicked).style(theme::Button::Destructive)
@@ -769,11 +769,11 @@ impl Application for Narwhal {
         };
         let hidden_btn = Button::new("Hidden").on_press(Message::HiddenChanged);
         let bookmark_btn = Button::new("Bookmark").on_press(Message::BookmarkCurrent);
-        let function_buttons = Row::new().push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn);
-        let mut bookmark_buttons = Column::new().push(back_btn);
+        let function_buttons = Row::new().push(back_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn);
+        let mut bookmark_buttons = Column::new();
         for i in 0..self.bookmarked_dirs.len() {
             let btn_text = Text::new(self.bookmarked_dirs[i].name.clone());
-            let btn = Button::new(btn_text).on_press(Message::BookmarkClicked(i)).width(SIDEBAR_WIDTH);
+            let btn = Button::new(btn_text).on_press(Message::BookmarkClicked(i)).width(SIDEBAR_WIDTH).style(theme::Button::Text);
             bookmark_buttons = bookmark_buttons.push(btn)
         }
         let mut file_listing = Column::new();
@@ -787,8 +787,10 @@ impl Application for Narwhal {
             temprow = temprow.push(full);
         }
         file_listing = file_listing.push(temprow);
-        let col_test = Column::new().push(function_buttons).push(file_listing);
-        let row_test = Row::new().push(bookmark_buttons).push(col_test);
+        let ruleh = Rule::horizontal(0);
+        let rulev = Rule::vertical(0);
+        let col_test = Column::new().push(function_buttons).push(ruleh).push(file_listing);
+        let row_test = Row::new().push(bookmark_buttons).push(rulev).push(col_test);
         Container::new(row_test).width(Length::Fill).height(Length::Fill).into()
     }
     fn subscription(&self) -> iced::Subscription<Message> {

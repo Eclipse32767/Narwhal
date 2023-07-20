@@ -26,6 +26,7 @@ const MAX_LENGTH: usize = 10;
 const SIDEBAR_WIDTH: u16 = 100;
 const THEME: &str = "Adwaita";
 const IMAGE_SCALE: u16 = 64;
+const RULE_WIDTH: u16 = 5;
 
 struct Narwhal {
     files: Vec<DirEntry>,
@@ -787,8 +788,8 @@ impl Application for Narwhal {
             temprow = temprow.push(full);
         }
         file_listing = file_listing.push(temprow);
-        let ruleh = Rule::horizontal(0);
-        let rulev = Rule::vertical(0);
+        let ruleh = Rule::horizontal(RULE_WIDTH);
+        let rulev = Rule::vertical(RULE_WIDTH);
         let col_test = Column::new().push(function_buttons).push(ruleh).push(file_listing);
         let row_test = Row::new().push(bookmark_buttons).push(rulev).push(col_test);
         Container::new(row_test).width(Length::Fill).height(Length::Fill).into()

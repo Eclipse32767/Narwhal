@@ -29,7 +29,8 @@ const MAX_LENGTH: usize = 10;
 const SIDEBAR_WIDTH: u16 = 100;
 const THEME: &str = "Adwaita";
 const IMAGE_SCALE: u16 = 64;
-const RULE_WIDTH: u16 = 5;
+const RULE_WIDTH: u16 = 1;
+const TOP_HEIGHT: u16 = 30;
 
 struct Narwhal {
     files: Vec<DirEntry>,
@@ -466,7 +467,7 @@ impl Default for Narwhal {
             deletion_confirmation: false, 
             mv_target: None, 
             cp_target: None,
-            theme: ThemeType::Light,
+            theme: ThemeType::Dark,
             themes: ThemeSet {
                 light: CustomTheme {
                     application: iced::theme::Palette {
@@ -477,7 +478,7 @@ impl Default for Narwhal {
                         danger: Color::from_rgb8(0xFF, 0x4C, 0x00),
                     },
                     sidebar: ButtonStyle { 
-                        border_radius: 10.0,
+                        border_radius: 2.0,
                         txt_color: Color::from_rgb8( 0x00, 0x19, 0x36),
                         bg_color: Some(Color::from_rgb8(0xD2, 0xF0, 0xFF)),
                         border_color: Color::from_rgb8(0, 0, 0),
@@ -485,7 +486,7 @@ impl Default for Narwhal {
                         shadow_offset: iced::Vector {x: 0.0, y: 0.0}
                     },
                     secondary: ButtonStyle {
-                        border_radius: 10.0,
+                        border_radius: 2.0,
                         txt_color: Color::from_rgb8(0x00, 0x20, 0x46),
                         bg_color: Some(Color::from_rgb8(0xC6, 0xEC, 0xFF)),
                         border_color: Color::from_rgb8(0, 0, 0),
@@ -495,24 +496,24 @@ impl Default for Narwhal {
                 },
                 dark: CustomTheme { // TODO: set dark theme properly
                     application: iced::theme::Palette {
-                        background: Color::from_rgb8(0xE0, 0xF5, 0xFF),
-                        text: Color::from_rgb8(0x00, 0x19, 0x36),
-                        primary: Color::from_rgb8(0x00, 0x19, 0x36),
+                        background: Color::from_rgb8(0x00, 0x19, 0x36),
+                        text: Color::from_rgb8(0xE0, 0xF5, 0xFF),
+                        primary: Color::from_rgb8(0x00, 0xCD, 0xB6),
                         success: Color::from_rgb8(1, 1, 1),
-                        danger: Color::from_rgb8(1, 1, 1),
+                        danger: Color::from_rgb8(0xC5, 0x3A, 0x00),
                     },
                     sidebar: ButtonStyle { 
-                        border_radius: 10.0,
-                        txt_color: Color::from_rgb8( 0x00, 0x19, 0x36),
-                        bg_color: Some(Color::from_rgb8(0xD2, 0xF0, 0xFF)),
+                        border_radius: 2.0,
+                        txt_color: Color::from_rgb8( 0xE0, 0xF5, 0xFF),
+                        bg_color: Some(Color::from_rgb8(0x00, 0x20, 0x46)),
                         border_color: Color::from_rgb8(0, 0, 0),
                         border_width: 0.0,
                         shadow_offset: iced::Vector {x: 0.0, y: 0.0}
                     },
                     secondary: ButtonStyle {
-                        border_radius: 10.0,
-                        txt_color: Color::from_rgb8(0x00, 0x20, 0x46),
-                        bg_color: Some(Color::from_rgb8(0xC6, 0xEC, 0xFF)),
+                        border_radius: 2.0,
+                        txt_color: Color::from_rgb8(0xE0, 0xF5, 0xFF),
+                        bg_color: Some(Color::from_rgb8(0x00, 0x29, 0x58)),
                         border_color: Color::from_rgb8(0, 0, 0),
                         border_width: 0.0,
                         shadow_offset: iced::Vector {x: 0.0, y: 0.0}
@@ -860,30 +861,33 @@ impl Application for Narwhal {
             ThemeType::Dark => self.themes.dark.clone(),
             ThemeType::Custom => self.themes.custom.clone(),
         };
-        let back_btn = Button::new("Back").on_press(Message::GoBack);
-        let sort_btn = Button::new("Sort").on_press(Message::SortChanged);
+        let back_btn = Button::new("Back").on_press(Message::GoBack).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
+        let sort_btn = Button::new("Sort").on_press(Message::SortChanged).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
         let delete_btn = if self.deletion_confirmation {
-            Button::new("Delete").on_press(Message::DeleteClicked).style(theme::Button::Destructive)
+            Button::new("Delete").on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(theme::Button::Destructive)
         } else {
-            Button::new("Delete").on_press(Message::DeleteClicked).style(current_theme.secondary.mk_theme())
+            Button::new("Delete").on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
         let mv_btn = match self.mv_target {
             Some(..) => Button::new("Move").on_press(Message::MvClicked),
-            None => Button::new("Move").on_press(Message::MvClicked).style(current_theme.secondary.mk_theme())
+            None => Button::new("Move").on_press(Message::MvClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
         let cp_btn = match self.cp_target {
             Some(..) => Button::new("Paste").on_press(Message::CpClicked),
-            None => Button::new("Copy").on_press(Message::CpClicked).style(current_theme.secondary.mk_theme())
+            None => Button::new("Copy").on_press(Message::CpClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
-        let hidden_btn = Button::new("Hidden").on_press(Message::HiddenChanged);
-        let bookmark_btn = Button::new("Bookmark").on_press(Message::BookmarkCurrent);
-        let function_buttons = Row::new().push(back_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn);
+        let hidden_btn = Button::new("Hidden").height(TOP_HEIGHT).on_press(Message::HiddenChanged).style(current_theme.secondary.mk_theme());
+        let bookmark_btn = Button::new("Bookmark").height(TOP_HEIGHT).on_press(Message::BookmarkCurrent).style(current_theme.secondary.mk_theme());
+        let function_cap = Button::new("").width(5000).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
+        let function_buttons = Row::new().push(back_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn).push(function_cap);
         let mut bookmark_buttons = Column::new();
         for i in 0..self.bookmarked_dirs.len() {
             let btn_text = Text::new(self.bookmarked_dirs[i].name.clone());
             let btn = Button::new(btn_text).on_press(Message::BookmarkClicked(i)).width(SIDEBAR_WIDTH).style(current_theme.sidebar.mk_theme());
             bookmark_buttons = bookmark_buttons.push(btn)
         }
+        let bookmark_cap = Button::new("").height(5000).width(SIDEBAR_WIDTH).style(current_theme.sidebar.mk_theme());
+        bookmark_buttons = bookmark_buttons.push(bookmark_cap);
         let mut file_listing = Column::new();
         let mut temprow = Row::new();
         for i in 0..self.uifiles.len() {

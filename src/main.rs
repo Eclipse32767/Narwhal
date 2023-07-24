@@ -1,7 +1,8 @@
+#![deny(unsafe_code)]
 use iced::{Application, Result, Settings, executor, Length};
 use iced::widget::{Button, Text, Row, Column, Container, svg, Rule};
 use iced::theme;
-use iced_style::Theme;
+use iced_style::{Theme, Color};
 use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::fs::{DirEntry, Metadata};
@@ -11,6 +12,8 @@ use std::process::Command;
 use freedesktop_icons::lookup;
 use xdg_utils::query_mime_info;
 use toml;
+use libstyle::{ThemeSet, CustomTheme, ButtonStyle, mk_app_theme};
+mod libstyle;
 
 fn main() -> Result {
     let mut settings = Settings::default();
@@ -42,6 +45,8 @@ struct Narwhal {
     deletion_confirmation: bool,
     mv_target: Option<String>,
     cp_target: Option<String>,
+    themes: ThemeSet,
+    theme: ThemeType,
 }
 fn get_cache_home() -> String {
     match env::var("XDG_CACHE_HOME") {
@@ -233,6 +238,11 @@ fn foldercmp(a: &DirEntry, b: &DirEntry, folders_first: bool) -> std::cmp::Order
             }
         }
     }
+}
+enum ThemeType {
+    Light,
+    Dark,
+    Custom
 }
 impl Narwhal {
     fn regen_uifiles(&mut self) {
@@ -442,7 +452,99 @@ impl Default for Narwhal {
             Ok(x) => toml::from_str(&x).unwrap(),
             Err(..) => Config { sort_mode: "Folder".to_string(), show_hidden: false, bookmarks: vec![] }
         };
-        let mut finalstruct = Narwhal { files: vec![], currentpath: current_dir, sorttype: decode_sort(config_struct.sort_mode), desired_cols: 5, show_hidden: config_struct.show_hidden, desired_rows: 5, last_clicked_file: None, uifiles: vec![], icon_cache: cache_struct.contents.clone(), bookmarked_dirs: config_struct.bookmarks.clone(), deletion_confirmation: false, mv_target: None, cp_target: None};
+        let mut finalstruct = Narwhal { 
+            files: vec![], 
+            currentpath: current_dir, 
+            sorttype: decode_sort(config_struct.sort_mode), 
+            desired_cols: 5, 
+            show_hidden: config_struct.show_hidden, 
+            desired_rows: 5, 
+            last_clicked_file: None, 
+            uifiles: vec![], 
+            icon_cache: cache_struct.contents.clone(), 
+            bookmarked_dirs: config_struct.bookmarks.clone(), 
+            deletion_confirmation: false, 
+            mv_target: None, 
+            cp_target: None,
+            theme: ThemeType::Light,
+            themes: ThemeSet {
+                light: CustomTheme {
+                    application: iced::theme::Palette {
+                        background: Color::from_rgb8(0xE0, 0xF5, 0xFF),
+                        text: Color::from_rgb8(0x00, 0x19, 0x36),
+                        primary: Color::from_rgb8(0x00, 0xF1, 0xD6),
+                        success: Color::from_rgb8(0xFF, 0x4C, 0x00),
+                        danger: Color::from_rgb8(0xFF, 0x4C, 0x00),
+                    },
+                    sidebar: ButtonStyle { 
+                        border_radius: 10.0,
+                        txt_color: Color::from_rgb8( 0x00, 0x19, 0x36),
+                        bg_color: Some(Color::from_rgb8(0xD2, 0xF0, 0xFF)),
+                        border_color: Color::from_rgb8(0, 0, 0),
+                        border_width: 0.0,
+                        shadow_offset: iced::Vector {x: 0.0, y: 0.0}
+                    },
+                    secondary: ButtonStyle {
+                        border_radius: 10.0,
+                        txt_color: Color::from_rgb8(0x00, 0x20, 0x46),
+                        bg_color: Some(Color::from_rgb8(0xC6, 0xEC, 0xFF)),
+                        border_color: Color::from_rgb8(0, 0, 0),
+                        border_width: 0.0,
+                        shadow_offset: iced::Vector {x: 0.0, y: 0.0}
+                    },
+                },
+                dark: CustomTheme { // TODO: set dark theme properly
+                    application: iced::theme::Palette {
+                        background: Color::from_rgb8(0xE0, 0xF5, 0xFF),
+                        text: Color::from_rgb8(0x00, 0x19, 0x36),
+                        primary: Color::from_rgb8(0x00, 0x19, 0x36),
+                        success: Color::from_rgb8(1, 1, 1),
+                        danger: Color::from_rgb8(1, 1, 1),
+                    },
+                    sidebar: ButtonStyle { 
+                        border_radius: 10.0,
+                        txt_color: Color::from_rgb8( 0x00, 0x19, 0x36),
+                        bg_color: Some(Color::from_rgb8(0xD2, 0xF0, 0xFF)),
+                        border_color: Color::from_rgb8(0, 0, 0),
+                        border_width: 0.0,
+                        shadow_offset: iced::Vector {x: 0.0, y: 0.0}
+                    },
+                    secondary: ButtonStyle {
+                        border_radius: 10.0,
+                        txt_color: Color::from_rgb8(0x00, 0x20, 0x46),
+                        bg_color: Some(Color::from_rgb8(0xC6, 0xEC, 0xFF)),
+                        border_color: Color::from_rgb8(0, 0, 0),
+                        border_width: 0.0,
+                        shadow_offset: iced::Vector {x: 0.0, y: 0.0}
+                    },
+                },
+                custom: CustomTheme { //TODO: get custom theme data
+                    application: iced::theme::Palette {
+                        background: Color::from_rgb8(0xE0, 0xF5, 0xFF),
+                        text: Color::from_rgb8(0x00, 0x19, 0x36),
+                        primary: Color::from_rgb8(0x00, 0x19, 0x36),
+                        success: Color::from_rgb8(1, 1, 1),
+                        danger: Color::from_rgb8(1, 1, 1),
+                    },
+                    sidebar: ButtonStyle { 
+                        border_radius: 10.0,
+                        txt_color: Color::from_rgb8( 0x00, 0x19, 0x36),
+                        bg_color: Some(Color::from_rgb8(0xD2, 0xF0, 0xFF)),
+                        border_color: Color::from_rgb8(0, 0, 0),
+                        border_width: 0.0,
+                        shadow_offset: iced::Vector {x: 0.0, y: 0.0}
+                    },
+                    secondary: ButtonStyle {
+                        border_radius: 10.0,
+                        txt_color: Color::from_rgb8(0x00, 0x20, 0x46),
+                        bg_color: Some(Color::from_rgb8(0xC6, 0xEC, 0xFF)),
+                        border_color: Color::from_rgb8(0, 0, 0),
+                        border_width: 0.0,
+                        shadow_offset: iced::Vector {x: 0.0, y: 0.0}
+                    },
+                },
+            }
+        };
         finalstruct.regen_files();
         finalstruct.regen_uifiles();
         finalstruct
@@ -753,20 +855,25 @@ impl Application for Narwhal {
         }
     }
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
+        let current_theme = match self.theme {
+            ThemeType::Light => self.themes.light.clone(),
+            ThemeType::Dark => self.themes.dark.clone(),
+            ThemeType::Custom => self.themes.custom.clone(),
+        };
         let back_btn = Button::new("Back").on_press(Message::GoBack);
         let sort_btn = Button::new("Sort").on_press(Message::SortChanged);
         let delete_btn = if self.deletion_confirmation {
             Button::new("Delete").on_press(Message::DeleteClicked).style(theme::Button::Destructive)
         } else {
-            Button::new("Delete").on_press(Message::DeleteClicked).style(theme::Button::Secondary)
+            Button::new("Delete").on_press(Message::DeleteClicked).style(current_theme.secondary.mk_theme())
         };
         let mv_btn = match self.mv_target {
             Some(..) => Button::new("Move").on_press(Message::MvClicked),
-            None => Button::new("Move").on_press(Message::MvClicked).style(theme::Button::Secondary)
+            None => Button::new("Move").on_press(Message::MvClicked).style(current_theme.secondary.mk_theme())
         };
         let cp_btn = match self.cp_target {
             Some(..) => Button::new("Paste").on_press(Message::CpClicked),
-            None => Button::new("Copy").on_press(Message::CpClicked).style(theme::Button::Secondary)
+            None => Button::new("Copy").on_press(Message::CpClicked).style(current_theme.secondary.mk_theme())
         };
         let hidden_btn = Button::new("Hidden").on_press(Message::HiddenChanged);
         let bookmark_btn = Button::new("Bookmark").on_press(Message::BookmarkCurrent);
@@ -774,7 +881,7 @@ impl Application for Narwhal {
         let mut bookmark_buttons = Column::new();
         for i in 0..self.bookmarked_dirs.len() {
             let btn_text = Text::new(self.bookmarked_dirs[i].name.clone());
-            let btn = Button::new(btn_text).on_press(Message::BookmarkClicked(i)).width(SIDEBAR_WIDTH).style(theme::Button::Text);
+            let btn = Button::new(btn_text).on_press(Message::BookmarkClicked(i)).width(SIDEBAR_WIDTH).style(current_theme.sidebar.mk_theme());
             bookmark_buttons = bookmark_buttons.push(btn)
         }
         let mut file_listing = Column::new();
@@ -806,5 +913,12 @@ impl Application for Narwhal {
                 }
             }
         )
+    }
+    fn theme(&self) -> Self::Theme {
+        match self.theme {
+            ThemeType::Light => mk_app_theme(self.themes.light.application.clone()),
+            ThemeType::Dark => mk_app_theme(self.themes.dark.application.clone()),
+            ThemeType::Custom => mk_app_theme(self.themes.custom.application.clone()),
+        }
     }
 }

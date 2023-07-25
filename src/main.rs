@@ -61,7 +61,7 @@ fn get_cache_home() -> String {
 }
 fn get_theme_file() -> CustomTheme {
     let home = get_config_home();
-    match fs::read_to_string(format!("{home}/NarwhalTheme.toml")) {
+    match fs::read_to_string(format!("{home}/Oceania/theme.toml")) {
         Ok(file) => {
             let themefile: ThemeFile = toml::from_str(&file).unwrap();
             CustomTheme {
@@ -306,6 +306,27 @@ enum ThemeType {
     Dark,
     Custom
 }
+#[derive(Serialize, Deserialize)]
+struct CuttlefishCfg {
+    theme: String
+}
+fn get_set_theme() -> ThemeType {
+    let home = format!("{}/Oceania/cfg.toml", get_config_home());
+    match fs::read_to_string(home) {
+        Ok(x) => {
+            let cfg: CuttlefishCfg = toml::from_str(&x).unwrap();
+            let theme_str = cfg.theme.clone();
+            if theme_str == String::from("dark") {
+                ThemeType::Dark
+            } else if theme_str == String::from("custom") {
+                ThemeType::Custom
+            } else {
+                ThemeType::Light
+            }
+        }
+        Err(..) => ThemeType::Light
+    }
+}
 impl Narwhal {
     fn regen_uifiles(&mut self) {
         let mut items_flushed = 0;
@@ -508,7 +529,7 @@ impl Default for Narwhal {
             Ok(x) => toml::from_str(&x).unwrap(),
             Err(..) => CacheFile { contents: HashMap::new() }
         };
-        let config_home = format!("{}/NarwhalFM.toml", get_config_home());
+        let config_home = format!("{}/Oceania/NarwhalFM.toml", get_config_home());
         let config_text = fs::read_to_string(config_home);
         let config_struct: Config = match config_text {
             Ok(x) => toml::from_str(&x).unwrap(),
@@ -528,7 +549,7 @@ impl Default for Narwhal {
             deletion_confirmation: false, 
             mv_target: None, 
             cp_target: None,
-            theme: ThemeType::Dark,
+            theme: get_set_theme(),
             themes: ThemeSet {
                 light: CustomTheme {
                     application: iced::theme::Palette {
@@ -827,7 +848,7 @@ impl Application for Narwhal {
                         fs::write(cache_home, cached_contents).unwrap();
                         let config_file = Config { sort_mode: encode_sort(self.sorttype.clone()), show_hidden: self.show_hidden, bookmarks: self.bookmarked_dirs.clone() };
                         let config_text = toml::to_string(&config_file).unwrap();
-                        let config_home = format!("{}/NarwhalFM.toml", get_config_home());
+                        let config_home = format!("{}/Oceania/NarwhalFM.toml", get_config_home());
                         fs::write(config_home, config_text).unwrap();
                         iced::window::close()
                     },

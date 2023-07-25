@@ -2,6 +2,7 @@
 #![deny(unsafe_code)]
 use iced_style::{Color, button, Background};
 use iced::theme::{self, Theme};
+use serde_derive::{Serialize, Deserialize};
 
 #[derive(Clone)]
 pub struct ButtonStyle {
@@ -51,4 +52,30 @@ impl ButtonStyle {
 }
 pub fn mk_app_theme(palette: iced::theme::Palette) -> iced::Theme {
     Theme::Custom(std::boxed::Box::new(iced::theme::Custom::new(palette)))
+}
+
+pub fn col_from_string(string: String) -> Color {
+    let chars: Vec<char> = string.chars().into_iter().collect();
+    let redstr = format!("{}{}", chars[0], chars[1]);
+    let greenstr = format!("{}{}", chars[2], chars[3]);
+    let bluestr = format!("{}{}", chars[4], chars[5]);
+    let red = u8::from_str_radix(&redstr, 16).unwrap();
+    let green = u8::from_str_radix(&greenstr, 16).unwrap();
+    let blue = u8::from_str_radix(&bluestr, 16).unwrap();
+    Color::from_rgb8(red, green, blue)
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ThemeFile {
+    pub bg_color1: String,
+    pub bg_color2: String,
+    pub bg_color3: String,
+    pub txt_color: String,
+    pub red: String,
+    pub orange: String,
+    pub yellow: String,
+    pub green: String,
+    pub blue: String,
+    pub purple: String,
+    pub pink: String
 }

@@ -2,6 +2,7 @@
 use iced::{Application, Result, Settings, executor, Length};
 use iced::widget::{Button, Text, Row, Column, Container, svg, Rule};
 use iced::theme;
+use iced_style::theme::Palette;
 use iced_style::{Theme, Color};
 use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
@@ -12,7 +13,7 @@ use std::process::Command;
 use freedesktop_icons::lookup;
 use xdg_utils::query_mime_info;
 use toml;
-use libstyle::{ThemeSet, CustomTheme, ButtonStyle, mk_app_theme};
+use libstyle::{ThemeSet, CustomTheme, ButtonStyle, ThemeFile, mk_app_theme, col_from_string};
 mod libstyle;
 
 fn main() -> Result {
@@ -55,6 +56,66 @@ fn get_cache_home() -> String {
         Err(..) => match env::var("HOME") {
             Ok(x) => format!("{x}/.cache"),
             Err(..) => panic!("bailing out, you're on your own")
+        }
+    }
+}
+fn get_theme_file() -> CustomTheme {
+    let home = get_config_home();
+    match fs::read_to_string(format!("{home}/NarwhalTheme.toml")) {
+        Ok(file) => {
+            let themefile: ThemeFile = toml::from_str(&file).unwrap();
+            CustomTheme {
+                application: Palette {
+                    background: col_from_string(themefile.bg_color1.clone()),
+                    text: col_from_string(themefile.txt_color.clone()),
+                    primary: col_from_string(themefile.blue.clone()),
+                    success: col_from_string(themefile.green.clone()),
+                    danger: col_from_string(themefile.red.clone()),
+                },
+                sidebar: ButtonStyle {
+                    border_radius: 2.0,
+                    txt_color: col_from_string(themefile.txt_color.clone()),
+                    bg_color: Some(col_from_string(themefile.bg_color2.clone())),
+                    border_color: Color::from_rgb8(0, 0, 0),
+                    border_width: 0.0,
+                    shadow_offset: iced::Vector {x: 0.0, y: 0.0}
+                },
+                secondary: ButtonStyle {
+                    border_radius: 2.0,
+                    txt_color: col_from_string(themefile.txt_color.clone()),
+                    bg_color: Some(col_from_string(themefile.bg_color3.clone())),
+                    border_color: Color::from_rgb8(0, 0, 0),
+                    border_width: 0.0,
+                    shadow_offset: iced::Vector {x: 0.0, y: 0.0}
+                },
+            }
+        }
+        Err(..) => {
+            CustomTheme {
+                application: iced::theme::Palette {
+                    background: Color::from_rgb8(0xE0, 0xF5, 0xFF),
+                    text: Color::from_rgb8(0x00, 0x19, 0x36),
+                    primary: Color::from_rgb8(0x00, 0xF1, 0xD6),
+                    success: Color::from_rgb8(0xFF, 0x4C, 0x00),
+                    danger: Color::from_rgb8(0xFF, 0x4C, 0x00),
+                },
+                sidebar: ButtonStyle { 
+                    border_radius: 2.0,
+                    txt_color: Color::from_rgb8( 0x00, 0x19, 0x36),
+                    bg_color: Some(Color::from_rgb8(0xD2, 0xF0, 0xFF)),
+                    border_color: Color::from_rgb8(0, 0, 0),
+                    border_width: 0.0,
+                    shadow_offset: iced::Vector {x: 0.0, y: 0.0}
+                },
+                secondary: ButtonStyle {
+                    border_radius: 2.0,
+                    txt_color: Color::from_rgb8(0x00, 0x20, 0x46),
+                    bg_color: Some(Color::from_rgb8(0xC6, 0xEC, 0xFF)),
+                    border_color: Color::from_rgb8(0, 0, 0),
+                    border_width: 0.0,
+                    shadow_offset: iced::Vector {x: 0.0, y: 0.0}
+                },
+            }
         }
     }
 }
@@ -519,31 +580,7 @@ impl Default for Narwhal {
                         shadow_offset: iced::Vector {x: 0.0, y: 0.0}
                     },
                 },
-                custom: CustomTheme { //TODO: get custom theme data
-                    application: iced::theme::Palette {
-                        background: Color::from_rgb8(0xE0, 0xF5, 0xFF),
-                        text: Color::from_rgb8(0x00, 0x19, 0x36),
-                        primary: Color::from_rgb8(0x00, 0x19, 0x36),
-                        success: Color::from_rgb8(1, 1, 1),
-                        danger: Color::from_rgb8(1, 1, 1),
-                    },
-                    sidebar: ButtonStyle { 
-                        border_radius: 10.0,
-                        txt_color: Color::from_rgb8( 0x00, 0x19, 0x36),
-                        bg_color: Some(Color::from_rgb8(0xD2, 0xF0, 0xFF)),
-                        border_color: Color::from_rgb8(0, 0, 0),
-                        border_width: 0.0,
-                        shadow_offset: iced::Vector {x: 0.0, y: 0.0}
-                    },
-                    secondary: ButtonStyle {
-                        border_radius: 10.0,
-                        txt_color: Color::from_rgb8(0x00, 0x20, 0x46),
-                        bg_color: Some(Color::from_rgb8(0xC6, 0xEC, 0xFF)),
-                        border_color: Color::from_rgb8(0, 0, 0),
-                        border_width: 0.0,
-                        shadow_offset: iced::Vector {x: 0.0, y: 0.0}
-                    },
-                },
+                custom: get_theme_file()
             }
         };
         finalstruct.regen_files();
@@ -884,7 +921,7 @@ impl Application for Narwhal {
         for i in 0..self.bookmarked_dirs.len() {
             let btn_text = Text::new(self.bookmarked_dirs[i].name.clone());
             let btn = Button::new(btn_text).on_press(Message::BookmarkClicked(i)).width(SIDEBAR_WIDTH).style(current_theme.sidebar.mk_theme());
-            bookmark_buttons = bookmark_buttons.push(btn)
+            bookmark_buttons = bookmark_buttons.push(btn);
         }
         let bookmark_cap = Button::new("").height(5000).width(SIDEBAR_WIDTH).style(current_theme.sidebar.mk_theme());
         bookmark_buttons = bookmark_buttons.push(bookmark_cap);

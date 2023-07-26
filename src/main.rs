@@ -27,7 +27,7 @@ const EST_HEIGHT: u32 = 104;
 const FONT_SIZE: u16 = 16;
 const SPACING: u16 = 10;
 const MAX_LENGTH: usize = 10;
-const SIDEBAR_WIDTH: u16 = 100;
+const SIDEBAR_WIDTH: u16 = 120;
 const THEME: &str = "Adwaita";
 const IMAGE_SCALE: u16 = 64;
 const RULE_WIDTH: u16 = 1;
@@ -810,6 +810,96 @@ impl Application for Narwhal {
                                 }
                             }
                         }
+                        if key_code == iced::keyboard::KeyCode::B && modifiers.shift() {
+                            let dir = self.currentpath.to_string_lossy().to_string();
+                            let paths: Vec<&str> = dir.split('/').into_iter().collect();
+                            let name = paths[paths.len()-1].to_string();
+                            let bookmark = BookmarkDir { name: name, path: dir };
+                            let mut bookmark_already_exists = None;
+                            for i in 0..self.bookmarked_dirs.len() {
+                                if bookmark.path == self.bookmarked_dirs[i].path {
+                                    bookmark_already_exists = Some(i);
+                                }
+                            }
+                            match bookmark_already_exists {
+                                Some(value) => {
+                                    self.bookmarked_dirs.remove(value);
+                                }
+                                None => {
+                                    self.bookmarked_dirs.push(bookmark);
+                                }
+                            }
+                        }
+                        if key_code == iced::keyboard::KeyCode::Key1 && self.bookmarked_dirs.len() > 0 {
+                            self.currentpath = PathBuf::from(self.bookmarked_dirs[0].path.clone());
+                            self.regen_files();
+                            sort_file_by_type(&mut self.files, self.sorttype.clone());
+                            self.last_clicked_file = None;
+                            self.regen_uifiles();
+                        }
+                        if key_code == iced::keyboard::KeyCode::Key2 && self.bookmarked_dirs.len() > 1 {
+                            self.currentpath = PathBuf::from(self.bookmarked_dirs[1].path.clone());
+                            self.regen_files();
+                            sort_file_by_type(&mut self.files, self.sorttype.clone());
+                            self.last_clicked_file = None;
+                            self.regen_uifiles();
+                        }
+                        if key_code == iced::keyboard::KeyCode::Key3 && self.bookmarked_dirs.len() > 2 {
+                            self.currentpath = PathBuf::from(self.bookmarked_dirs[2].path.clone());
+                            self.regen_files();
+                            sort_file_by_type(&mut self.files, self.sorttype.clone());
+                            self.last_clicked_file = None;
+                            self.regen_uifiles();
+                        }
+                        if key_code == iced::keyboard::KeyCode::Key4 && self.bookmarked_dirs.len() > 3 {
+                            self.currentpath = PathBuf::from(self.bookmarked_dirs[3].path.clone());
+                            self.regen_files();
+                            sort_file_by_type(&mut self.files, self.sorttype.clone());
+                            self.last_clicked_file = None;
+                            self.regen_uifiles();
+                        }
+                        if key_code == iced::keyboard::KeyCode::Key5 && self.bookmarked_dirs.len() > 4 {
+                            self.currentpath = PathBuf::from(self.bookmarked_dirs[4].path.clone());
+                            self.regen_files();
+                            sort_file_by_type(&mut self.files, self.sorttype.clone());
+                            self.last_clicked_file = None;
+                            self.regen_uifiles();
+                        }
+                        if key_code == iced::keyboard::KeyCode::Key6 && self.bookmarked_dirs.len() > 5 {
+                            self.currentpath = PathBuf::from(self.bookmarked_dirs[5].path.clone());
+                            self.regen_files();
+                            sort_file_by_type(&mut self.files, self.sorttype.clone());
+                            self.last_clicked_file = None;
+                            self.regen_uifiles();
+                        }
+                        if key_code == iced::keyboard::KeyCode::Key7 && self.bookmarked_dirs.len() > 6 {
+                            self.currentpath = PathBuf::from(self.bookmarked_dirs[6].path.clone());
+                            self.regen_files();
+                            sort_file_by_type(&mut self.files, self.sorttype.clone());
+                            self.last_clicked_file = None;
+                            self.regen_uifiles();
+                        }
+                        if key_code == iced::keyboard::KeyCode::Key8 && self.bookmarked_dirs.len() > 7 {
+                            self.currentpath = PathBuf::from(self.bookmarked_dirs[7].path.clone());
+                            self.regen_files();
+                            sort_file_by_type(&mut self.files, self.sorttype.clone());
+                            self.last_clicked_file = None;
+                            self.regen_uifiles();
+                        }
+                        if key_code == iced::keyboard::KeyCode::Key9 && self.bookmarked_dirs.len() > 8 {
+                            self.currentpath = PathBuf::from(self.bookmarked_dirs[8].path.clone());
+                            self.regen_files();
+                            sort_file_by_type(&mut self.files, self.sorttype.clone());
+                            self.last_clicked_file = None;
+                            self.regen_uifiles();
+                        }
+                        if key_code == iced::keyboard::KeyCode::Key0 && self.bookmarked_dirs.len() > 9 {
+                            self.currentpath = PathBuf::from(self.bookmarked_dirs[9].path.clone());
+                            self.regen_files();
+                            sort_file_by_type(&mut self.files, self.sorttype.clone());
+                            self.last_clicked_file = None;
+                            self.regen_uifiles();
+                        }
                     }
                     iced::keyboard::Event::KeyReleased { key_code: _, modifiers: _ } => {},
                     iced::keyboard::Event::CharacterReceived(_) => {},
@@ -941,7 +1031,7 @@ impl Application for Narwhal {
         let function_buttons = Row::new().push(back_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn).push(function_cap);
         let mut bookmark_buttons = Column::new();
         for i in 0..self.bookmarked_dirs.len() {
-            let btn_text = Text::new(self.bookmarked_dirs[i].name.clone());
+            let btn_text = Text::new(format!("{}. {}", i+1, self.bookmarked_dirs[i].name.clone()));
             let btn = Button::new(btn_text).on_press(Message::BookmarkClicked(i)).width(SIDEBAR_WIDTH).style(current_theme.sidebar.mk_theme());
             bookmark_buttons = bookmark_buttons.push(btn);
         }

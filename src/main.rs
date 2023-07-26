@@ -797,7 +797,7 @@ impl Application for Narwhal {
                             self.show_hidden = !self.show_hidden;
                             self.regen_uifiles();
                         }
-                        if key_code == iced::keyboard::KeyCode::Minus {
+                        if key_code == iced::keyboard::KeyCode::Minus && modifiers == iced::keyboard::Modifiers::SHIFT {
                             match self.last_clicked_file {
                                 Some(x) => {
                                     if self.deletion_confirmation {

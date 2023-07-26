@@ -900,6 +900,42 @@ impl Application for Narwhal {
                             self.last_clicked_file = None;
                             self.regen_uifiles();
                         }
+                        if key_code == iced::keyboard::KeyCode::M {//mv
+                            match self.mv_target {
+                                Some(..) => {
+                                    self.mv_file();
+                                }
+                                None => {
+                                    match self.last_clicked_file {
+                                        Some(x) => {
+                                            let path = self.files[x].path().to_string_lossy().to_string();
+                                            self.mv_target = Some(path);
+                                        }
+                                        None => {
+                                            self.mv_target = None;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if key_code == iced::keyboard::KeyCode::C {//cp
+                            match self.cp_target {
+                                Some(..) => {
+                                    self.cp_file();
+                                }
+                                None => {
+                                    match self.last_clicked_file {
+                                        Some(x) => {
+                                            let path = self.files[x].path().to_string_lossy().to_string();
+                                            self.cp_target = Some(path);
+                                        }
+                                        None => {
+                                            self.cp_target = None;
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                     iced::keyboard::Event::KeyReleased { key_code: _, modifiers: _ } => {},
                     iced::keyboard::Event::CharacterReceived(_) => {},

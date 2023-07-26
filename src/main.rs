@@ -605,6 +605,7 @@ impl Default for Narwhal {
             }
         };
         finalstruct.regen_files();
+        sort_file_by_type(&mut finalstruct.files, finalstruct.sorttype.clone());
         finalstruct.regen_uifiles();
         finalstruct
     }

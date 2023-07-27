@@ -1,0 +1,54 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-07-27 00:25+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/main.rs:1053
+msgid "Back"
+msgstr ""
+
+#: src/main.rs:1054
+msgid "Sort"
+msgstr ""
+
+#: src/main.rs:1056 src/main.rs:1058
+msgid "Delete"
+msgstr ""
+
+#: src/main.rs:1061
+msgid "Move Here"
+msgstr ""
+
+#: src/main.rs:1062
+msgid "Move"
+msgstr ""
+
+#: src/main.rs:1065
+msgid "Paste"
+msgstr ""
+
+#: src/main.rs:1066
+msgid "Copy"
+msgstr ""
+
+#: src/main.rs:1068
+msgid "Hidden"
+msgstr ""
+
+#: src/main.rs:1069
+msgid "Bookmark"
+msgstr ""

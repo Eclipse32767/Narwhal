@@ -13,10 +13,14 @@ use std::process::Command;
 use freedesktop_icons::lookup;
 use xdg_utils::query_mime_info;
 use toml;
+use gettextrs::*;
 use libstyle::{ThemeSet, CustomTheme, ButtonStyle, ThemeFile, mk_app_theme, col_from_string};
 mod libstyle;
 
 fn main() -> Result {
+    let _ = textdomain("NarwhalFM");
+    let _ = bind_textdomain_codeset("hellorust", "UTF-8");
+
     let mut settings = Settings::default();
     settings.exit_on_close_request =  false;
     Narwhal::run(settings)
@@ -1046,23 +1050,23 @@ impl Application for Narwhal {
             ThemeType::Dark => self.themes.dark.clone(),
             ThemeType::Custom => self.themes.custom.clone(),
         };
-        let back_btn = Button::new("Back").on_press(Message::GoBack).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
-        let sort_btn = Button::new("Sort").on_press(Message::SortChanged).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
+        let back_btn = Button::new(Text::new(gettext("Back"))).on_press(Message::GoBack).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
+        let sort_btn = Button::new(Text::new(gettext("Sort"))).on_press(Message::SortChanged).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
         let delete_btn = if self.deletion_confirmation {
-            Button::new("Delete").on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(theme::Button::Destructive)
+            Button::new(Text::new(gettext("Delete"))).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(theme::Button::Destructive)
         } else {
-            Button::new("Delete").on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
+            Button::new(Text::new(gettext("Delete"))).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
         let mv_btn = match self.mv_target {
-            Some(..) => Button::new("Move").on_press(Message::MvClicked),
-            None => Button::new("Move").on_press(Message::MvClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
+            Some(..) => Button::new(Text::new(gettext("Move Here"))).on_press(Message::MvClicked),
+            None => Button::new(Text::new(gettext("Move"))).on_press(Message::MvClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
         let cp_btn = match self.cp_target {
-            Some(..) => Button::new("Paste").on_press(Message::CpClicked),
-            None => Button::new("Copy").on_press(Message::CpClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
+            Some(..) => Button::new(Text::new(gettext("Paste"))).on_press(Message::CpClicked),
+            None => Button::new(Text::new(gettext("Copy"))).on_press(Message::CpClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
-        let hidden_btn = Button::new("Hidden").height(TOP_HEIGHT).on_press(Message::HiddenChanged).style(current_theme.secondary.mk_theme());
-        let bookmark_btn = Button::new("Bookmark").height(TOP_HEIGHT).on_press(Message::BookmarkCurrent).style(current_theme.secondary.mk_theme());
+        let hidden_btn = Button::new(Text::new(gettext("Hidden"))).height(TOP_HEIGHT).on_press(Message::HiddenChanged).style(current_theme.secondary.mk_theme());
+        let bookmark_btn = Button::new(Text::new(gettext("Bookmark"))).height(TOP_HEIGHT).on_press(Message::BookmarkCurrent).style(current_theme.secondary.mk_theme());
         let function_cap = Button::new("").width(5000).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
         let function_buttons = Row::new().push(back_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn).push(function_cap);
         let mut bookmark_buttons = Column::new();

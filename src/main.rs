@@ -19,7 +19,7 @@ mod libstyle;
 
 fn main() -> Result {
     let _ = textdomain("NarwhalFM");
-    let _ = bind_textdomain_codeset("hellorust", "UTF-8");
+    let _ = bind_textdomain_codeset("NarwhalFM", "UTF-8");
 
     let mut settings = Settings::default();
     settings.exit_on_close_request =  false;

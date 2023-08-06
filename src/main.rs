@@ -1,9 +1,9 @@
 #![deny(unsafe_code)]
-use iced::{Application, Result, Settings, executor, Length};
+use iced::{Application, Result, Settings, executor, Length, Color};
 use iced::widget::{Button, Text, Row, Column, Container, svg, Rule};
 use iced::theme;
 use iced_style::theme::Palette;
-use iced_style::{Theme, Color};
+use iced_style::Theme;
 use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::fs::{DirEntry, Metadata};

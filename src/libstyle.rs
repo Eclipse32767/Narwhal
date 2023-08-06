@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![deny(unsafe_code)]
-use iced_style::{Color, button, Background};
+use iced_style::button;
+use iced::{Color, Background};
 use iced::theme::{self, Theme};
 use serde_derive::{Serialize, Deserialize};
 
@@ -23,7 +24,7 @@ impl button::StyleSheet for ButtonStyle {
                 Some(x) => Some(Background::Color(x.clone())),
                 None => None
             }, 
-            border_radius: self.border_radius,
+            border_radius: self.border_radius.into(),
             border_width: self.border_width, 
             border_color: self.border_color.clone(), 
             text_color: self.txt_color.clone()

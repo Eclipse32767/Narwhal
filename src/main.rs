@@ -1,4 +1,5 @@
 #![deny(unsafe_code)]
+use iced::futures::executor::block_on;
 use iced::{Application, Result, Settings, executor, Length, Color};
 use iced::widget::{Button, Text, Row, Column, Container, svg, Rule};
 use iced::theme;
@@ -266,6 +267,29 @@ fn clip_file_name(name: String) -> String {
         name
     }  
 }
+async fn get_file_icon(cache: &HashMap<String, String>, path: String) -> (Option<HashMap<String, String>>, String) {
+    let icon_cache = cache.clone();
+    let mut cache_changes: HashMap<String, String> = HashMap::new();
+    let icon_out = icon_cache.get(&path);
+    match icon_out {
+        Some(icon) => match lookup(icon).with_cache().with_size(32).with_theme(THEME).find() {
+            Some(x) => (None, x.to_string_lossy().to_string()),
+            None => {
+                let newicon = clean_bad_mime(icon.to_string());
+                match lookup(&newicon).with_cache().with_size(32).with_theme(THEME).find() {
+                    Some(x) => (None, x.to_string_lossy().to_string()),
+                    None => (None, format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR")))
+                }
+            }
+        }
+        None => {
+            let output = cacheless_get_file_icon(path.clone());
+            cache_changes.insert(path, output.clone());
+            lookup(&output).with_cache().with_size(32).with_theme(&THEME).find().unwrap().to_string_lossy().to_string();
+            (Some(cache_changes), output)
+        }
+    }
+}
 fn cacheless_get_file_icon(path: String) -> String {
     let mut mimetype = get_file_mimetype(path.clone()).replace("/", "-");
     if mimetype == "inode-directory" {
@@ -336,6 +360,11 @@ impl Narwhal {
     fn regen_uifiles(&mut self) {
         let mut items_flushed = 0;
         let max_iter = self.desired_cols * self.desired_rows;
+        let mut futures = vec![];
+        let mut names = vec![];
+        let mut selectedvals = vec![];
+        let mut originalindeces = vec![];
+        let mut all_changes = vec![];
         self.uifiles = vec![];
         for i in 0..self.files.len() {
             if items_flushed == max_iter {
@@ -350,11 +379,30 @@ impl Narwhal {
                     Some(value) => value == i,
                     None => false
                 };
-                let icon = self.get_file_icon(path.clone());
-                let uifile = UIFile { name: name, original_index: i, selected: selected, icon: icon };
-                self.uifiles.push(uifile);
+                futures.push(get_file_icon(&self.icon_cache, path.clone()));
+                names.push(name);
+                selectedvals.push(selected);
+                originalindeces.push(i);
                 items_flushed = items_flushed + 1;
             }
+        }
+        for i in 0..futures.len() {
+            let output = block_on(futures.remove(0));
+            let icon = output.1;
+            match output.0 {
+                Some(cache_changes) => {
+                    all_changes.push(cache_changes)
+                }
+                None => {
+
+                }
+            }
+            let uifile = UIFile { name: names[i].clone(), original_index: originalindeces[i], selected: selectedvals[i], icon: icon };
+            self.uifiles.push(uifile);
+        }
+        drop(futures);
+        for change in all_changes {
+            self.icon_cache.extend(change.into_iter());
         }
     }
     fn regen_files(&mut self) {
@@ -365,26 +413,6 @@ impl Narwhal {
         };
         for path in read_output {
             self.files.push(path.unwrap())
-        }
-    }
-    fn get_file_icon(&mut self, path: String) -> String {
-        let icon_out = self.icon_cache.get(&path);
-        match icon_out {
-            Some(icon) => match lookup(icon).with_cache().with_size(32).with_theme(THEME).find() {
-                Some(x) => x.to_string_lossy().to_string(),
-                None => {
-                    let newicon = clean_bad_mime(icon.clone());
-                    match lookup(&newicon).with_cache().with_size(32).with_theme(THEME).find() {
-                        Some(x) => x.to_string_lossy().to_string(),
-                        None => format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR"))
-                    }
-                }
-            }
-            None => {
-                let output = cacheless_get_file_icon(path.clone());
-                self.icon_cache.insert(path, output.clone());
-                lookup(&output).with_cache().with_size(32).with_theme(&THEME).find().unwrap().to_string_lossy().to_string()
-            }
         }
     }
     fn interact_selected_entry(&mut self, index: usize) {

@@ -28,7 +28,8 @@ fn main() -> Result {
 
 const EST_LENGTH: u32 = 84;
 const EST_HEIGHT: u32 = 104;
-const FONT_SIZE: u16 = 16;
+const FONT_SIZE: u16 = 12;
+const SPECIAL_FONT_SIZE: u16 = 14;
 const SPACING: u16 = 10;
 const MAX_LENGTH: usize = 10;
 const SIDEBAR_WIDTH: u16 = 120;
@@ -1050,28 +1051,28 @@ impl Application for Narwhal {
             ThemeType::Dark => self.themes.dark.clone(),
             ThemeType::Custom => self.themes.custom.clone(),
         };
-        let back_btn = Button::new(Text::new(gettext("Back"))).on_press(Message::GoBack).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
-        let sort_btn = Button::new(Text::new(gettext("Sort"))).on_press(Message::SortChanged).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
+        let back_btn = Button::new(Text::new(gettext("Back")).size(SPECIAL_FONT_SIZE)).on_press(Message::GoBack).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
+        let sort_btn = Button::new(Text::new(gettext("Sort")).size(SPECIAL_FONT_SIZE)).on_press(Message::SortChanged).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
         let delete_btn = if self.deletion_confirmation {
-            Button::new(Text::new(gettext("Delete"))).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(theme::Button::Destructive)
+            Button::new(Text::new(gettext("Delete")).size(SPECIAL_FONT_SIZE)).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(theme::Button::Destructive)
         } else {
-            Button::new(Text::new(gettext("Delete"))).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
+            Button::new(Text::new(gettext("Delete")).size(SPECIAL_FONT_SIZE)).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
         let mv_btn = match self.mv_target {
-            Some(..) => Button::new(Text::new(gettext("Move Here"))).on_press(Message::MvClicked),
-            None => Button::new(Text::new(gettext("Move"))).on_press(Message::MvClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
+            Some(..) => Button::new(Text::new(gettext("Move Here")).size(SPECIAL_FONT_SIZE)).on_press(Message::MvClicked),
+            None => Button::new(Text::new(gettext("Move")).size(SPECIAL_FONT_SIZE)).on_press(Message::MvClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
         let cp_btn = match self.cp_target {
-            Some(..) => Button::new(Text::new(gettext("Paste"))).on_press(Message::CpClicked),
-            None => Button::new(Text::new(gettext("Copy"))).on_press(Message::CpClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
+            Some(..) => Button::new(Text::new(gettext("Paste")).size(SPECIAL_FONT_SIZE)).on_press(Message::CpClicked),
+            None => Button::new(Text::new(gettext("Copy")).size(SPECIAL_FONT_SIZE)).on_press(Message::CpClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
-        let hidden_btn = Button::new(Text::new(gettext("Hidden"))).height(TOP_HEIGHT).on_press(Message::HiddenChanged).style(current_theme.secondary.mk_theme());
-        let bookmark_btn = Button::new(Text::new(gettext("Bookmark"))).height(TOP_HEIGHT).on_press(Message::BookmarkCurrent).style(current_theme.secondary.mk_theme());
+        let hidden_btn = Button::new(Text::new(gettext("Hidden")).size(SPECIAL_FONT_SIZE)).height(TOP_HEIGHT).on_press(Message::HiddenChanged).style(current_theme.secondary.mk_theme());
+        let bookmark_btn = Button::new(Text::new(gettext("Bookmark")).size(SPECIAL_FONT_SIZE)).height(TOP_HEIGHT).on_press(Message::BookmarkCurrent).style(current_theme.secondary.mk_theme());
         let function_cap = Button::new("").width(5000).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
         let function_buttons = Row::new().push(back_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn).push(function_cap);
         let mut bookmark_buttons = Column::new();
         for i in 0..self.bookmarked_dirs.len() {
-            let btn_text = Text::new(format!("{}. {}", i+1, self.bookmarked_dirs[i].name.clone()));
+            let btn_text = Text::new(format!("{}. {}", i+1, self.bookmarked_dirs[i].name.clone())).size(SPECIAL_FONT_SIZE);
             let btn = Button::new(btn_text).on_press(Message::BookmarkClicked(i)).width(SIDEBAR_WIDTH).style(current_theme.sidebar.mk_theme());
             bookmark_buttons = bookmark_buttons.push(btn);
         }

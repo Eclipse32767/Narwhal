@@ -29,7 +29,7 @@ fn main() -> Result {
 }
 
 const EST_LENGTH: u32 = 84;
-const EST_HEIGHT: u32 = 104;
+const EST_HEIGHT: u32 = 40;
 const FONT_SIZE: u16 = 12;
 const SPECIAL_FONT_SIZE: u16 = 14;
 const SPACING: u16 = 10;
@@ -202,8 +202,7 @@ struct UIFile {
     icon: String,
 }
 
-fn ui_file_to_btn<'a>(lazy: UIFile) -> Column<'a, Message> {
-    println!("{}", lazy.icon);
+async fn ui_file_to_btn<'a>(lazy: UIFile) -> Column<'a, Message> {
     let file_icon = lazy.icon.clone();
     let handle = svg::Handle::from_path(file_icon);
     let image = svg(handle).height(IMAGE_SCALE).width(IMAGE_SCALE);
@@ -1109,8 +1108,13 @@ impl Application for Narwhal {
         bookmark_buttons = bookmark_buttons.push(bookmark_cap);
         let mut file_listing = Column::new();
         let mut temprow = Row::new();
+        let mut filebtnfutures = vec![];
         for i in 0..self.uifiles.len() {
-            let full = ui_file_to_btn(self.uifiles[i].clone());
+            filebtnfutures.push(ui_file_to_btn(self.uifiles[i].clone()));
+        }
+        let mut test = block_on(join_all(filebtnfutures));
+        for i in 0..test.len() {
+            let full = test.remove(0);
             if i % self.desired_cols as usize == 0 {
                 file_listing = file_listing.push(temprow);
                 temprow = Row::new().spacing(SPACING);

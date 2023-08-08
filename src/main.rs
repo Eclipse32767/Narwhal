@@ -29,7 +29,7 @@ fn main() -> Result {
 }
 
 const EST_LENGTH: u32 = 84;
-const EST_HEIGHT: u32 = 40;
+const EST_HEIGHT: u32 = 104;
 const FONT_SIZE: u16 = 12;
 const SPECIAL_FONT_SIZE: u16 = 14;
 const SPACING: u16 = 10;

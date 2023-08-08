@@ -1,5 +1,6 @@
 #![deny(unsafe_code)]
 use iced::futures::executor::block_on;
+use iced::futures::future::join_all;
 use iced::{Application, Result, Settings, executor, Length, Color};
 use iced::widget::{Button, Text, Row, Column, Container, svg, Rule};
 use iced::theme;
@@ -202,6 +203,7 @@ struct UIFile {
 }
 
 fn ui_file_to_btn<'a>(lazy: UIFile) -> Column<'a, Message> {
+    println!("{}", lazy.icon);
     let file_icon = lazy.icon.clone();
     let handle = svg::Handle::from_path(file_icon);
     let image = svg(handle).height(IMAGE_SCALE).width(IMAGE_SCALE);
@@ -267,7 +269,7 @@ fn clip_file_name(name: String) -> String {
         name
     }  
 }
-async fn get_file_icon(cache: &HashMap<String, String>, path: String) -> (Option<HashMap<String, String>>, String) {
+async fn get_file_icon(cache: HashMap<String, String>, path: String) -> (Option<HashMap<String, String>>, String) {
     let icon_cache = cache.clone();
     let mut cache_changes: HashMap<String, String> = HashMap::new();
     let icon_out = icon_cache.get(&path);
@@ -285,8 +287,7 @@ async fn get_file_icon(cache: &HashMap<String, String>, path: String) -> (Option
         None => {
             let output = cacheless_get_file_icon(path.clone());
             cache_changes.insert(path, output.clone());
-            lookup(&output).with_cache().with_size(32).with_theme(&THEME).find().unwrap().to_string_lossy().to_string();
-            (Some(cache_changes), output)
+            (Some(cache_changes), lookup(&output).with_cache().with_size(32).with_theme(&THEME).find().unwrap().to_string_lossy().to_string())
         }
     }
 }
@@ -357,7 +358,7 @@ fn get_set_theme() -> ThemeType {
     }
 }
 impl Narwhal {
-    fn regen_uifiles(&mut self) {
+    async fn regen_uifiles(&mut self) {
         let mut items_flushed = 0;
         let max_iter = self.desired_cols * self.desired_rows;
         let mut futures = vec![];
@@ -379,15 +380,16 @@ impl Narwhal {
                     Some(value) => value == i,
                     None => false
                 };
-                futures.push(get_file_icon(&self.icon_cache, path.clone()));
+                futures.push(get_file_icon(self.icon_cache.clone(), path.clone()));
                 names.push(name);
                 selectedvals.push(selected);
                 originalindeces.push(i);
                 items_flushed = items_flushed + 1;
             }
         }
-        for i in 0..futures.len() {
-            let output = block_on(futures.remove(0));
+        let mut test = join_all(futures).await;
+        for i in 0..test.len() {
+            let output = test.remove(0);
             let icon = output.1;
             match output.0 {
                 Some(cache_changes) => {
@@ -400,7 +402,6 @@ impl Narwhal {
             let uifile = UIFile { name: names[i].clone(), original_index: originalindeces[i], selected: selectedvals[i], icon: icon };
             self.uifiles.push(uifile);
         }
-        drop(futures);
         for change in all_changes {
             self.icon_cache.extend(change.into_iter());
         }
@@ -455,11 +456,11 @@ impl Narwhal {
                 } else {
                     self.last_clicked_file = Some(index);
                 }
-                self.regen_uifiles();
+                block_on(self.regen_uifiles());
             }
             None => {
                 self.last_clicked_file = Some(index);
-                self.regen_uifiles();
+                block_on(self.regen_uifiles());
             }
         }
     }
@@ -468,7 +469,7 @@ impl Narwhal {
         self.regen_files();
         sort_file_by_type(&mut self.files, self.sorttype.clone());
         self.last_clicked_file = None;
-        self.regen_uifiles();
+        block_on(self.regen_uifiles());
     }
     fn change_sort(&mut self, reverse: bool) {
         if reverse {
@@ -488,7 +489,7 @@ impl Narwhal {
         }
         sort_file_by_type(&mut self.files, self.sorttype.clone());
         self.last_clicked_file = None;
-        self.regen_uifiles();
+        block_on(self.regen_uifiles());
     }
     fn rm_file(&mut self, index: usize) {
         let path = self.files[index].path().to_string_lossy().to_string();
@@ -510,7 +511,7 @@ impl Narwhal {
         self.regen_files();
         sort_file_by_type(&mut self.files, self.sorttype.clone());
         self.last_clicked_file = None;
-        self.regen_uifiles();
+        block_on(self.regen_uifiles());
     }
     fn mv_file(&mut self) {
         let target = self.mv_target.clone().unwrap();
@@ -520,7 +521,7 @@ impl Narwhal {
         self.regen_files();
         sort_file_by_type(&mut self.files, self.sorttype.clone());
         self.last_clicked_file = None;
-        self.regen_uifiles();
+        block_on(self.regen_uifiles());
     }
     fn cp_file(&mut self) {
         let target = self.cp_target.clone().unwrap();
@@ -530,7 +531,7 @@ impl Narwhal {
         self.regen_files();
         sort_file_by_type(&mut self.files, self.sorttype.clone());
         self.last_clicked_file = None;
-        self.regen_uifiles();
+        block_on(self.regen_uifiles());
     }
 }
 fn sort_file_by_type(input: &mut Vec<DirEntry>, sort_type: SortType) {
@@ -639,7 +640,7 @@ impl Default for Narwhal {
         };
         finalstruct.regen_files();
         sort_file_by_type(&mut finalstruct.files, finalstruct.sorttype.clone());
-        finalstruct.regen_uifiles();
+        block_on(finalstruct.regen_uifiles());
         finalstruct
     }
 }
@@ -679,7 +680,7 @@ impl Application for Narwhal {
             }
             Message::HiddenChanged => {
                 self.show_hidden = !self.show_hidden;
-                self.regen_uifiles();
+                block_on(self.regen_uifiles());
                 iced::Command::none()
             }
             Message::BookmarkCurrent => {
@@ -708,7 +709,7 @@ impl Application for Narwhal {
                 self.regen_files();
                 sort_file_by_type(&mut self.files, self.sorttype.clone());
                 self.last_clicked_file = None;
-                self.regen_uifiles();
+                block_on(self.regen_uifiles());
                 iced::Command::none()
             }
             Message::KeyboardUpdate(kb_event) => {
@@ -728,7 +729,7 @@ impl Application for Narwhal {
                                 }
                             }
                             self.last_clicked_file = Some(self.uifiles[old_index].original_index);
-                            self.regen_uifiles();
+                            block_on(self.regen_uifiles());
                         }
                         if key_code == iced::keyboard::KeyCode::Right {
                             let mut old_index = 0;
@@ -744,7 +745,7 @@ impl Application for Narwhal {
                                 }
                             }
                             self.last_clicked_file = Some(self.uifiles[old_index].original_index);
-                            self.regen_uifiles();
+                            block_on(self.regen_uifiles());
                         }
                         if key_code == iced::keyboard::KeyCode::Down {
                             let mut old_index = None;
@@ -772,7 +773,7 @@ impl Application for Narwhal {
                                 }
                             };
                             self.last_clicked_file = Some(self.uifiles[old_index.unwrap()].original_index);
-                            self.regen_uifiles();
+                            block_on(self.regen_uifiles());
                         }
                         if key_code == iced::keyboard::KeyCode::Up {
                             let mut old_index = None;
@@ -810,7 +811,7 @@ impl Application for Narwhal {
                                 }
                             };
                             self.last_clicked_file = Some(self.uifiles[old_index.unwrap()].original_index);
-                            self.regen_uifiles();
+                            block_on(self.regen_uifiles());
                         }
                         if key_code == iced::keyboard::KeyCode::Enter {
                             match self.last_clicked_file {
@@ -828,7 +829,7 @@ impl Application for Narwhal {
                         }
                         if key_code == iced::keyboard::KeyCode::H {
                             self.show_hidden = !self.show_hidden;
-                            self.regen_uifiles();
+                            block_on(self.regen_uifiles());
                         }
                         if key_code == iced::keyboard::KeyCode::Minus && modifiers == iced::keyboard::Modifiers::SHIFT {
                             match self.last_clicked_file {
@@ -868,70 +869,70 @@ impl Application for Narwhal {
                             self.regen_files();
                             sort_file_by_type(&mut self.files, self.sorttype.clone());
                             self.last_clicked_file = None;
-                            self.regen_uifiles();
+                            block_on(self.regen_uifiles());
                         }
                         if key_code == iced::keyboard::KeyCode::Key2 && self.bookmarked_dirs.len() > 1 {
                             self.currentpath = PathBuf::from(self.bookmarked_dirs[1].path.clone());
                             self.regen_files();
                             sort_file_by_type(&mut self.files, self.sorttype.clone());
                             self.last_clicked_file = None;
-                            self.regen_uifiles();
+                            block_on(self.regen_uifiles());
                         }
                         if key_code == iced::keyboard::KeyCode::Key3 && self.bookmarked_dirs.len() > 2 {
                             self.currentpath = PathBuf::from(self.bookmarked_dirs[2].path.clone());
                             self.regen_files();
                             sort_file_by_type(&mut self.files, self.sorttype.clone());
                             self.last_clicked_file = None;
-                            self.regen_uifiles();
+                            block_on(self.regen_uifiles());
                         }
                         if key_code == iced::keyboard::KeyCode::Key4 && self.bookmarked_dirs.len() > 3 {
                             self.currentpath = PathBuf::from(self.bookmarked_dirs[3].path.clone());
                             self.regen_files();
                             sort_file_by_type(&mut self.files, self.sorttype.clone());
                             self.last_clicked_file = None;
-                            self.regen_uifiles();
+                            block_on(self.regen_uifiles());
                         }
                         if key_code == iced::keyboard::KeyCode::Key5 && self.bookmarked_dirs.len() > 4 {
                             self.currentpath = PathBuf::from(self.bookmarked_dirs[4].path.clone());
                             self.regen_files();
                             sort_file_by_type(&mut self.files, self.sorttype.clone());
                             self.last_clicked_file = None;
-                            self.regen_uifiles();
+                            block_on(self.regen_uifiles());
                         }
                         if key_code == iced::keyboard::KeyCode::Key6 && self.bookmarked_dirs.len() > 5 {
                             self.currentpath = PathBuf::from(self.bookmarked_dirs[5].path.clone());
                             self.regen_files();
                             sort_file_by_type(&mut self.files, self.sorttype.clone());
                             self.last_clicked_file = None;
-                            self.regen_uifiles();
+                            block_on(self.regen_uifiles());
                         }
                         if key_code == iced::keyboard::KeyCode::Key7 && self.bookmarked_dirs.len() > 6 {
                             self.currentpath = PathBuf::from(self.bookmarked_dirs[6].path.clone());
                             self.regen_files();
                             sort_file_by_type(&mut self.files, self.sorttype.clone());
                             self.last_clicked_file = None;
-                            self.regen_uifiles();
+                            block_on(self.regen_uifiles());
                         }
                         if key_code == iced::keyboard::KeyCode::Key8 && self.bookmarked_dirs.len() > 7 {
                             self.currentpath = PathBuf::from(self.bookmarked_dirs[7].path.clone());
                             self.regen_files();
                             sort_file_by_type(&mut self.files, self.sorttype.clone());
                             self.last_clicked_file = None;
-                            self.regen_uifiles();
+                            block_on(self.regen_uifiles());
                         }
                         if key_code == iced::keyboard::KeyCode::Key9 && self.bookmarked_dirs.len() > 8 {
                             self.currentpath = PathBuf::from(self.bookmarked_dirs[8].path.clone());
                             self.regen_files();
                             sort_file_by_type(&mut self.files, self.sorttype.clone());
                             self.last_clicked_file = None;
-                            self.regen_uifiles();
+                            block_on(self.regen_uifiles());
                         }
                         if key_code == iced::keyboard::KeyCode::Key0 && self.bookmarked_dirs.len() > 9 {
                             self.currentpath = PathBuf::from(self.bookmarked_dirs[9].path.clone());
                             self.regen_files();
                             sort_file_by_type(&mut self.files, self.sorttype.clone());
                             self.last_clicked_file = None;
-                            self.regen_uifiles();
+                            block_on(self.regen_uifiles());
                         }
                         if key_code == iced::keyboard::KeyCode::M {//mv
                             match self.mv_target {
@@ -996,7 +997,7 @@ impl Application for Narwhal {
                         if old_cols == self.desired_cols && old_rows == self.desired_rows {
 
                         } else {
-                            self.regen_uifiles();
+                            block_on(self.regen_uifiles());
                         }
                         iced::Command::none()
                     },

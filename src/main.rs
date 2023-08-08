@@ -365,6 +365,7 @@ impl Narwhal {
         let mut selectedvals = vec![];
         let mut originalindeces = vec![];
         let mut all_changes = vec![];
+        let exec = iced::executor::Default::new().unwrap();
         self.uifiles = vec![];
         for i in 0..self.files.len() {
             if items_flushed == max_iter {
@@ -379,16 +380,15 @@ impl Narwhal {
                     Some(value) => value == i,
                     None => false
                 };
-                futures.push(get_file_icon(self.icon_cache.clone(), path.clone()));
+                futures.push(exec.spawn(get_file_icon(self.icon_cache.clone(), path.clone())));
                 names.push(name);
                 selectedvals.push(selected);
                 originalindeces.push(i);
                 items_flushed = items_flushed + 1;
             }
         }
-        let mut test = join_all(futures).await;
-        for i in 0..test.len() {
-            let output = test.remove(0);
+        for i in 0..futures.len() {
+            let output = futures.remove(0).await.unwrap();
             let icon = output.1;
             match output.0 {
                 Some(cache_changes) => {

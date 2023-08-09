@@ -2,22 +2,24 @@
 use iced::futures::executor::block_on;
 use iced::futures::future::join_all;
 use iced::{Application, Result, Settings, executor, Length, Color};
-use iced::widget::{Button, Text, Row, Column, Container, svg, Rule};
+use iced::widget::{Button, Text, Row, Column, Container, Rule};
 use iced::theme;
-use iced_style::theme::Palette;
 use iced_style::Theme;
-use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::fs::{DirEntry, Metadata};
 use std::{env, fs, vec};
 use std::path::PathBuf;
 use std::process::Command;
-use freedesktop_icons::lookup;
-use xdg_utils::query_mime_info;
 use toml;
 use gettextrs::*;
 use libstyle::{ThemeSet, CustomTheme, ButtonStyle, ThemeFile, mk_app_theme, col_from_string};
 mod libstyle;
+use iconhelpers::{get_file_icon, get_file_mimetype};
+mod iconhelpers;
+use confighelpers::*;
+mod confighelpers;
+use uihelpers::*;
+mod uihelpers;
 
 fn main() -> Result {
     let _ = textdomain("NarwhalFM");
@@ -35,7 +37,6 @@ const SPECIAL_FONT_SIZE: u16 = 14;
 const SPACING: u16 = 10;
 const MAX_LENGTH: usize = 10;
 const SIDEBAR_WIDTH: u16 = 120;
-const THEME: &str = "Adwaita";
 const IMAGE_SCALE: u16 = 64;
 const RULE_WIDTH: u16 = 1;
 const TOP_HEIGHT: u16 = 30;
@@ -57,124 +58,9 @@ struct Narwhal {
     themes: ThemeSet,
     theme: ThemeType,
 }
-fn get_cache_home() -> String {
-    match env::var("XDG_CACHE_HOME") {
-        Ok(x) => x,
-        Err(..) => match env::var("HOME") {
-            Ok(x) => format!("{x}/.cache"),
-            Err(..) => panic!("bailing out, you're on your own")
-        }
-    }
-}
-fn get_theme_file() -> CustomTheme {
-    let home = get_config_home();
-    match fs::read_to_string(format!("{home}/Oceania/theme.toml")) {
-        Ok(file) => {
-            let themefile: ThemeFile = toml::from_str(&file).unwrap();
-            CustomTheme {
-                application: Palette {
-                    background: col_from_string(themefile.bg_color1.clone()),
-                    text: col_from_string(themefile.txt_color.clone()),
-                    primary: col_from_string(themefile.blue.clone()),
-                    success: col_from_string(themefile.green.clone()),
-                    danger: col_from_string(themefile.red.clone()),
-                },
-                sidebar: ButtonStyle {
-                    border_radius: 2.0,
-                    txt_color: col_from_string(themefile.txt_color.clone()),
-                    bg_color: Some(col_from_string(themefile.bg_color2.clone())),
-                    border_color: Color::from_rgb8(0, 0, 0),
-                    border_width: 0.0,
-                    shadow_offset: iced::Vector {x: 0.0, y: 0.0}
-                },
-                secondary: ButtonStyle {
-                    border_radius: 2.0,
-                    txt_color: col_from_string(themefile.txt_color.clone()),
-                    bg_color: Some(col_from_string(themefile.bg_color3.clone())),
-                    border_color: Color::from_rgb8(0, 0, 0),
-                    border_width: 0.0,
-                    shadow_offset: iced::Vector {x: 0.0, y: 0.0}
-                },
-            }
-        }
-        Err(..) => {
-            CustomTheme {
-                application: iced::theme::Palette {
-                    background: Color::from_rgb8(0xE0, 0xF5, 0xFF),
-                    text: Color::from_rgb8(0x00, 0x19, 0x36),
-                    primary: Color::from_rgb8(0x00, 0xF1, 0xD6),
-                    success: Color::from_rgb8(0xFF, 0x4C, 0x00),
-                    danger: Color::from_rgb8(0xFF, 0x4C, 0x00),
-                },
-                sidebar: ButtonStyle { 
-                    border_radius: 2.0,
-                    txt_color: Color::from_rgb8( 0x00, 0x19, 0x36),
-                    bg_color: Some(Color::from_rgb8(0xD2, 0xF0, 0xFF)),
-                    border_color: Color::from_rgb8(0, 0, 0),
-                    border_width: 0.0,
-                    shadow_offset: iced::Vector {x: 0.0, y: 0.0}
-                },
-                secondary: ButtonStyle {
-                    border_radius: 2.0,
-                    txt_color: Color::from_rgb8(0x00, 0x20, 0x46),
-                    bg_color: Some(Color::from_rgb8(0xC6, 0xEC, 0xFF)),
-                    border_color: Color::from_rgb8(0, 0, 0),
-                    border_width: 0.0,
-                    shadow_offset: iced::Vector {x: 0.0, y: 0.0}
-                },
-            }
-        }
-    }
-}
-#[derive(Serialize, Deserialize, Clone)]
-struct CachedIcon {
-    path: String,
-    icon: String
-}
-#[derive(Serialize, Deserialize, Clone)]
-struct BookmarkDir {
-    name: String,
-    path: String
-}
-#[derive(Serialize, Deserialize, Clone)]
-struct Config {
-    sort_mode: String,
-    show_hidden: bool,
-    bookmarks: Vec<BookmarkDir>
-}
-#[derive(Serialize, Deserialize, Clone)]
-struct CacheFile {
-    contents: HashMap<String, String>
-}
-fn encode_sort(sort_type: SortType) -> String {
-    match sort_type {
-        SortType::Alphabetical => "Alphabetical".to_string(),
-        SortType::Reverse => "Reverse".to_string(),
-        SortType::Folders => "Folders".to_string(),
-        SortType::Files => "Files".to_string(),
-    }
-}
-fn decode_sort(sort_type: String) -> SortType {
-    let test = String::as_str(&sort_type);
-    match test {
-        "Alphabetical" => SortType::Alphabetical,
-        "Reverse" => SortType::Reverse,
-        "Folders" => SortType::Folders,
-        "Files" => SortType::Files,
-        &_ => SortType::Folders
-    }
-}
-fn get_config_home() -> String {
-    match env::var("XDG_CONFIG_HOME") {
-        Ok(x) => x,
-        Err(..) => match env::var("HOME") {
-            Ok(x) => format!("{x}/.config"),
-            Err(..) => panic!("bailing out, you're on your own")
-        }
-    }
-}
+
 #[derive(Debug, Clone)]
-enum Message {
+pub enum Message {
     FileClicked(usize),
     GoBack,
     SortChanged,
@@ -186,62 +72,6 @@ enum Message {
     DeleteClicked,
     MvClicked,
     CpClicked,
-}
-
-#[derive(PartialEq)]
-enum FileType {
-    Folder,
-    File,
-    Link
-}
-#[derive(Clone)]
-struct UIFile {
-    name: String,
-    original_index: usize,
-    selected: bool,
-    icon: String,
-}
-
-async fn ui_file_to_btn<'a>(lazy: UIFile) -> Column<'a, Message> {
-    let file_icon = lazy.icon.clone();
-    let handle = svg::Handle::from_path(file_icon);
-    let image = svg(handle).height(IMAGE_SCALE).width(IMAGE_SCALE);
-    let text = Text::new(clip_file_name(lazy.name.clone())).size(FONT_SIZE);
-    let button = if lazy.selected {
-        Button::new(image).on_press(Message::FileClicked(lazy.original_index))
-    } else {
-        Button::new(image).on_press(Message::FileClicked(lazy.original_index)).style(theme::Button::Text)
-    };
-    Column::new().push(button).push(text).align_items(iced::Alignment::Center)
-}
-
-#[derive(Clone)]
-enum SortType {
-    Alphabetical,
-    Reverse,
-    Folders,
-    Files,
-}
-fn clean_bad_mime(mime: String) -> String {
-    let substrings_type: Vec<&str> = mime.split("-").collect();
-    let category = substrings_type[0].to_string();
-    if category == "application".to_string() {
-        String::from("application-x-executable")
-    } else if mime == "inode-directory" {
-        String::from("folder")
-    } else {
-        format!("{}-x-generic", category)
-    }
-}
-fn get_file_mimetype(path: String) -> String {
-    let raw_data = match query_mime_info(path) {
-        Ok(x) => x,
-        Err(x) => panic!("{}", x)  
-    };
-    match std::str::from_utf8(&raw_data) {
-        Ok(x) => x.to_string(),
-        Err(e) => panic!("{}", e)
-    }
 }
 fn get_file_type(metadata: Metadata) -> FileType {
     if metadata.is_dir() {
@@ -268,45 +98,6 @@ fn clip_file_name(name: String) -> String {
         name
     }  
 }
-async fn get_file_icon(cache: HashMap<String, String>, path: String) -> (Option<HashMap<String, String>>, String) {
-    let icon_cache = cache.clone();
-    let mut cache_changes: HashMap<String, String> = HashMap::new();
-    let icon_out = icon_cache.get(&path);
-    match icon_out {
-        Some(icon) => match lookup(icon).with_cache().with_size(32).with_theme(THEME).find() {
-            Some(x) => (None, x.to_string_lossy().to_string()),
-            None => {
-                let newicon = clean_bad_mime(icon.to_string());
-                match lookup(&newicon).with_cache().with_size(32).with_theme(THEME).find() {
-                    Some(x) => (None, x.to_string_lossy().to_string()),
-                    None => (None, format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR")))
-                }
-            }
-        }
-        None => {
-            let output = cacheless_get_file_icon(path.clone());
-            cache_changes.insert(path, output.clone());
-            (Some(cache_changes), lookup(&output).with_cache().with_size(32).with_theme(&THEME).find().unwrap().to_string_lossy().to_string())
-        }
-    }
-}
-fn cacheless_get_file_icon(path: String) -> String {
-    let mut mimetype = get_file_mimetype(path.clone()).replace("/", "-");
-    if mimetype == "inode-directory" {
-        String::from("folder")
-    } else {
-        match lookup(&mimetype).with_cache().with_size(32).with_theme(&THEME).find() {
-            Some(..) => mimetype,
-            None => {
-                mimetype = clean_bad_mime(mimetype);
-                match lookup(&mimetype).with_cache().with_size(32).with_theme(&THEME).find() {
-                    Some(..) => mimetype,
-                    None => format!("text-x-generic")
-                }
-            }
-        }
-    }
-}
 fn foldercmp(a: &DirEntry, b: &DirEntry, folders_first: bool) -> std::cmp::Ordering {
     let a_metadata = a.metadata().unwrap();
     let b_metadata = b.metadata().unwrap();
@@ -330,32 +121,7 @@ fn foldercmp(a: &DirEntry, b: &DirEntry, folders_first: bool) -> std::cmp::Order
         }
     }
 }
-enum ThemeType {
-    Light,
-    Dark,
-    Custom
-}
-#[derive(Serialize, Deserialize)]
-struct CuttlefishCfg {
-    theme: String
-}
-fn get_set_theme() -> ThemeType {
-    let home = format!("{}/Oceania/cfg.toml", get_config_home());
-    match fs::read_to_string(home) {
-        Ok(x) => {
-            let cfg: CuttlefishCfg = toml::from_str(&x).unwrap();
-            let theme_str = cfg.theme.clone();
-            if theme_str == String::from("dark") {
-                ThemeType::Dark
-            } else if theme_str == String::from("custom") {
-                ThemeType::Custom
-            } else {
-                ThemeType::Light
-            }
-        }
-        Err(..) => ThemeType::Light
-    }
-}
+
 impl Narwhal {
     async fn regen_uifiles(&mut self) {
         let mut items_flushed = 0;
@@ -1110,7 +876,7 @@ impl Application for Narwhal {
         let mut temprow = Row::new();
         let mut filebtnfutures = vec![];
         for i in 0..self.uifiles.len() {
-            filebtnfutures.push(ui_file_to_btn(self.uifiles[i].clone()));
+            filebtnfutures.push(self.uifiles[i].render());
         }
         let mut test = block_on(join_all(filebtnfutures));
         for i in 0..test.len() {

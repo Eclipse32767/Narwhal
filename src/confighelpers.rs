@@ -8,7 +8,7 @@ use crate::ThemeFile;
 use crate::CustomTheme;
 use crate::ButtonStyle;
 use crate::col_from_string;
-pub fn get_cache_home() -> String {
+pub fn get_cache_home() -> String { //get cache directory in compliance with XDG directories
     match env::var("XDG_CACHE_HOME") {
         Ok(x) => x,
         Err(..) => match env::var("HOME") {
@@ -18,9 +18,9 @@ pub fn get_cache_home() -> String {
     }
 }
 pub fn get_theme_file() -> CustomTheme {
-    let home = get_config_home();
+    let home = get_config_home();//read theme file
     match fs::read_to_string(format!("{home}/Oceania/theme.toml")) {
-        Ok(file) => {
+        Ok(file) => { // if it succeeds, construct a theme according to file
             let themefile: ThemeFile = toml::from_str(&file).unwrap();
             CustomTheme {
                 application: Palette {
@@ -49,7 +49,7 @@ pub fn get_theme_file() -> CustomTheme {
             }
         }
         Err(..) => {
-            CustomTheme {
+            CustomTheme {//if it fails, use the light theme
                 application: iced::theme::Palette {
                     background: Color::from_rgb8(0xE0, 0xF5, 0xFF),
                     text: Color::from_rgb8(0x00, 0x19, 0x36),
@@ -77,7 +77,7 @@ pub fn get_theme_file() -> CustomTheme {
         }
     }
 }
-pub fn encode_sort(sort_type: SortType) -> String {
+pub fn encode_sort(sort_type: SortType) -> String {//convert a sorttype to a string
     match sort_type {
         SortType::Alphabetical => "Alphabetical".to_string(),
         SortType::Reverse => "Reverse".to_string(),
@@ -85,7 +85,7 @@ pub fn encode_sort(sort_type: SortType) -> String {
         SortType::Files => "Files".to_string(),
     }
 }
-pub fn decode_sort(sort_type: String) -> SortType {
+pub fn decode_sort(sort_type: String) -> SortType {//convert a string into a sorttype
     let test = String::as_str(&sort_type);
     match test {
         "Alphabetical" => SortType::Alphabetical,
@@ -95,7 +95,7 @@ pub fn decode_sort(sort_type: String) -> SortType {
         &_ => SortType::Folders
     }
 }
-pub fn get_config_home() -> String {
+pub fn get_config_home() -> String {//get the user's config home, in compliance with XDG directories
     match env::var("XDG_CONFIG_HOME") {
         Ok(x) => x,
         Err(..) => match env::var("HOME") {
@@ -104,44 +104,44 @@ pub fn get_config_home() -> String {
         }
     }
 }
-pub enum ThemeType {
+pub enum ThemeType {//enum for selecting the desired theme
     Light,
     Dark,
     Custom
 }
 #[derive(PartialEq)]
-pub enum FileType {
+pub enum FileType {//enum for what types a file may possess
     Folder,
     File,
     Link
 }
 #[derive(Serialize, Deserialize, Clone)]
-pub struct BookmarkDir {
+pub struct BookmarkDir {//struct representation of a bookmarked location
     pub name: String,
     pub path: String
 }
 #[derive(Serialize, Deserialize, Clone)]
-pub struct Config {
+pub struct Config {//struct representation of a config file
     pub sort_mode: String,
     pub show_hidden: bool,
     pub bookmarks: Vec<BookmarkDir>
 }
 #[derive(Serialize, Deserialize, Clone)]
-pub struct CacheFile {
+pub struct CacheFile {//struct representation of the cache file
     pub contents: HashMap<String, String>
 }
 #[derive(Clone)]
-pub enum SortType {
+pub enum SortType { //enum representing what sorttype is preferred
     Alphabetical,
     Reverse,
     Folders,
     Files,
 }
 #[derive(Serialize, Deserialize)]
-pub struct CuttlefishCfg {
+pub struct CuttlefishCfg {//struct used in collecting the user's preferred theme
     pub theme: String
 }
-pub fn get_set_theme() -> ThemeType {
+pub fn get_set_theme() -> ThemeType {//function to retrieve the user's theme preference
     let home = format!("{}/Oceania/cfg.toml", get_config_home());
     match fs::read_to_string(home) {
         Ok(x) => {

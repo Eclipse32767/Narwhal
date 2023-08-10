@@ -43,7 +43,7 @@ const IMAGE_SCALE: u16 = 64;
 const RULE_WIDTH: u16 = 1;
 const TOP_HEIGHT: u16 = 30;
 
-struct Narwhal {
+struct Narwhal {//contains all application state
     files: Vec<DirEntry>,
     currentpath: PathBuf,
     sorttype: SortType,
@@ -62,7 +62,7 @@ struct Narwhal {
 }
 
 #[derive(Debug, Clone)]
-pub enum Message {
+pub enum Message {//enum representing button events
     FileClicked(usize),
     GoBack,
     SortChanged,
@@ -75,7 +75,7 @@ pub enum Message {
     MvClicked,
     CpClicked,
 }
-fn get_file_type(metadata: Metadata) -> FileType {
+fn get_file_type(metadata: Metadata) -> FileType {//collects the filetype from metadata
     if metadata.is_dir() {
         FileType::Folder
     } else if metadata.is_file() {
@@ -86,7 +86,7 @@ fn get_file_type(metadata: Metadata) -> FileType {
         FileType::File
     }
 }
-fn clip_file_name(name: String) -> String {
+fn clip_file_name(name: String) -> String {//shorten the file name
     let usename: Vec<char> = name.clone().chars().collect();
     let mut newvec: Vec<char> = vec![];
     let len = MAX_LENGTH;
@@ -100,7 +100,7 @@ fn clip_file_name(name: String) -> String {
         name
     }  
 }
-fn foldercmp(a: &DirEntry, b: &DirEntry, folders_first: bool) -> std::cmp::Ordering {
+fn foldercmp(a: &DirEntry, b: &DirEntry, folders_first: bool) -> std::cmp::Ordering {//compare folders, returning an ordering
     let a_metadata = a.metadata().unwrap();
     let b_metadata = b.metadata().unwrap();
     let a_type = get_file_type(a_metadata);
@@ -141,39 +141,39 @@ impl Narwhal {
             }
             let name = self.files[i].file_name().to_string_lossy().to_string();
             let chars: Vec<char> = name.chars().collect();
-            if !self.show_hidden && chars[0] == '.' {
+            if !self.show_hidden && chars[0] == '.' {//filter out hidden files if desired
             } else {
                 let path = self.files[i].path().to_string_lossy().to_string();
                 let selected = match self.last_clicked_file {
                     Some(value) => value == i,
                     None => false
                 };
-                futures.push(exec.spawn(get_file_icon(self.icon_cache.clone(), path.clone())));
+                futures.push(exec.spawn(get_file_icon(self.icon_cache.clone(), path.clone())));//spawn all file icon fetching futures
                 names.push(name);
                 selectedvals.push(selected);
                 originalindeces.push(i);
                 items_flushed = items_flushed + 1;
             }
         }
-        for i in 0..futures.len() {
-            let output = futures.remove(0).await.unwrap();
+        for i in 0..futures.len() {//resolve futures
+            let output = futures.remove(0).await.unwrap();//wait for it to finish then collect result
             let icon = output.1;
             match output.0 {
-                Some(cache_changes) => {
+                Some(cache_changes) => {//push any cache changes onto a vec of all needed changes
                     all_changes.push(cache_changes)
                 }
                 None => {
 
                 }
             }
-            let uifile = UIFile { name: names[i].clone(), original_index: originalindeces[i], selected: selectedvals[i], icon: icon };
+            let uifile = UIFile { name: names[i].clone(), original_index: originalindeces[i], selected: selectedvals[i], icon: icon };//construct the UIFile and push it onto the vec
             self.uifiles.push(uifile);
         }
-        for change in all_changes {
+        for change in all_changes {//for every change, push it onto the cache
             self.icon_cache.extend(change.into_iter());
         }
     }
-    fn regen_files(&mut self) {
+    fn regen_files(&mut self) {//rebuild filelist
         self.files = vec![];
         let read_output = match fs::read_dir(self.currentpath.clone()) {
             Ok(x) => x,
@@ -183,7 +183,7 @@ impl Narwhal {
             self.files.push(path.unwrap())
         }
     }
-    fn interact_selected_entry(&mut self, index: usize) {
+    fn interact_selected_entry(&mut self, index: usize) {//do sanity checks and then interact with the currently hovered entry if all checks pass
         match self.last_clicked_file {
             Some(x) => {
                 if x == index {
@@ -231,14 +231,14 @@ impl Narwhal {
             }
         }
     }
-    fn go_back_directory(&mut self) {
+    fn go_back_directory(&mut self) {//pop an entry off of the current path, regenerate the filelist and UIFiles
         self.currentpath.pop();
         self.regen_files();
         sort_file_by_type(&mut self.files, self.sorttype.clone());
         self.last_clicked_file = None;
         block_on(self.regen_uifiles());
     }
-    fn change_sort(&mut self, reverse: bool) {
+    fn change_sort(&mut self, reverse: bool) {//cycle through sort modes
         if reverse {
             self.sorttype = match self.sorttype {
                 SortType::Alphabetical => SortType::Files,
@@ -258,7 +258,7 @@ impl Narwhal {
         self.last_clicked_file = None;
         block_on(self.regen_uifiles());
     }
-    fn rm_file(&mut self, index: usize) {
+    fn rm_file(&mut self, index: usize) {//remove a file, this function contains less sanity checks and should be used carefully
         let path = self.files[index].path().to_string_lossy().to_string();
         let is_directory = match self.files[index].metadata() {
             Ok(x) => x.is_dir(),
@@ -280,7 +280,7 @@ impl Narwhal {
         self.last_clicked_file = None;
         block_on(self.regen_uifiles());
     }
-    fn mv_file(&mut self) {
+    fn mv_file(&mut self) {//move a file to another location, no sanity checks
         let target = self.mv_target.clone().unwrap();
         let path = self.currentpath.to_string_lossy().to_string();
         Command::new("mv").arg(target).arg(path).output().unwrap();
@@ -290,7 +290,7 @@ impl Narwhal {
         self.last_clicked_file = None;
         block_on(self.regen_uifiles());
     }
-    fn cp_file(&mut self) {
+    fn cp_file(&mut self) {//copy a file to another location, no sanity checks
         let target = self.cp_target.clone().unwrap();
         let path = self.currentpath.to_string_lossy().to_string();
         Command::new("cp").arg(target).arg(path).output().unwrap();
@@ -301,7 +301,7 @@ impl Narwhal {
         block_on(self.regen_uifiles());
     }
 }
-fn sort_file_by_type(input: &mut Vec<DirEntry>, sort_type: SortType) {
+fn sort_file_by_type(input: &mut Vec<DirEntry>, sort_type: SortType) {//sort files based on the chosen SortType
     match sort_type {
         SortType::Alphabetical => {
             input.sort_by(|a, b| a.file_name().to_string_lossy().to_string().partial_cmp( &b.file_name().to_string_lossy().to_string()).unwrap())
@@ -323,40 +323,40 @@ impl Application for Narwhal {
     type Theme = Theme;
     type Executor = executor::Default;
     type Flags = ();
-    fn new(_flags: ()) -> (Self, iced::Command<Self::Message>) {
+    fn new(_flags: ()) -> (Self, iced::Command<Self::Message>) {//initialize program
         (
             Self::default(),
             iced::Command::none()
         )
     }
-    fn title(&self) -> String {
+    fn title(&self) -> String {//Window title
         String::from("Narwhal File Manager")
     }
-    fn update(&mut self, message: Self::Message) -> iced::Command<Self::Message> {
+    fn update(&mut self, message: Self::Message) -> iced::Command<Self::Message> {//decide what to do based on message
         let mut tempfiles: Vec<String> = vec![];
         for file in &self.files {
             let temp = file.file_name().to_string_lossy().to_string();
             tempfiles.push(temp);
         };
         match message {
-            Message::FileClicked(x) => {
+            Message::FileClicked(x) => {//a file was clicked, interact it
                 self.interact_selected_entry(x);
                 iced::Command::none()
             },
-            Message::GoBack => {
+            Message::GoBack => {//go back a directory
                 self.go_back_directory();
                 iced::Command::none()
             },
-            Message::SortChanged => {
+            Message::SortChanged => {//change sortmode
                 self.change_sort(false);
                 iced::Command::none()
             }
-            Message::HiddenChanged => {
+            Message::HiddenChanged => {//change hidden flag
                 self.show_hidden = !self.show_hidden;
                 block_on(self.regen_uifiles());
                 iced::Command::none()
             }
-            Message::BookmarkCurrent => {
+            Message::BookmarkCurrent => {//bookmark or unbookmark current dir
                 let dir = self.currentpath.to_string_lossy().to_string();
                 let paths: Vec<&str> = dir.split('/').into_iter().collect();
                 let name = paths[paths.len()-1].to_string();
@@ -377,7 +377,7 @@ impl Application for Narwhal {
                 }
                 iced::Command::none()
             }
-            Message::BookmarkClicked(index) => {
+            Message::BookmarkClicked(index) => {//go to the bookmark's chosen dir
                 self.currentpath = PathBuf::from(self.bookmarked_dirs[index].path.clone());
                 self.regen_files();
                 sort_file_by_type(&mut self.files, self.sorttype.clone());
@@ -385,14 +385,14 @@ impl Application for Narwhal {
                 block_on(self.regen_uifiles());
                 iced::Command::none()
             }
-            Message::KeyboardUpdate(kb_event) => {
+            Message::KeyboardUpdate(kb_event) => {//send to keyboard parser
                 self.kbparse(kb_event);
                 iced::Command::none()
             }
             Message::WindowUpdate(win_event) => {
                 match win_event {
                     iced::window::Event::Moved { x: _, y: _ } => {iced::Command::none()},
-                    iced::window::Event::Resized { width, height } => {
+                    iced::window::Event::Resized { width, height } => {//calculate appropriate amount of rows and columns
                         let old_cols = self.desired_cols;
                         let old_rows = self.desired_rows;
                         if width > SIDEBAR_WIDTH as u32 {
@@ -414,7 +414,7 @@ impl Application for Narwhal {
                         iced::Command::none()
                     },
                     iced::window::Event::RedrawRequested(_) => {iced::Command::none()},
-                    iced::window::Event::CloseRequested => {
+                    iced::window::Event::CloseRequested => {//write cache and config, then close
                         let yes = CacheFile { contents: self.icon_cache.clone() };
                         let cached_contents = toml::to_string(&yes).unwrap();
                         let cache_home = format!("{}/NarwhalFM", get_cache_home());
@@ -432,7 +432,7 @@ impl Application for Narwhal {
                     iced::window::Event::FilesHoveredLeft => {iced::Command::none()},
                 }
             }
-            Message::DeleteClicked => {
+            Message::DeleteClicked => {//do sanity checks then rm file
                 match self.last_clicked_file {
                     Some(x) => {
                         if self.deletion_confirmation {
@@ -446,7 +446,7 @@ impl Application for Narwhal {
                 }
                 iced::Command::none()
             }
-            Message::MvClicked => {
+            Message::MvClicked => {//do sanity checks then mv file
                 match self.mv_target {
                     Some(..) => {
                         self.mv_file();
@@ -465,7 +465,7 @@ impl Application for Narwhal {
                 }
                 iced::Command::none()
             }
-            Message::CpClicked => {
+            Message::CpClicked => {//do sanity checks then cp file
                 match self.cp_target {
                     Some(..) => {
                         self.cp_file();
@@ -486,12 +486,13 @@ impl Application for Narwhal {
             }
         }
     }
-    fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
-        let current_theme = match self.theme {
+    fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {//render code!
+        let current_theme = match self.theme {//clone selected theme into current_theme
             ThemeType::Light => self.themes.light.clone(),
             ThemeType::Dark => self.themes.dark.clone(),
             ThemeType::Custom => self.themes.custom.clone(),
-        };
+        }; 
+        // construct top bar
         let back_btn = localized_button("Back", SPECIAL_FONT_SIZE).on_press(Message::GoBack).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
         let sort_btn = localized_button("Sort", SPECIAL_FONT_SIZE).on_press(Message::SortChanged).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
         let delete_btn = if self.deletion_confirmation {
@@ -511,6 +512,7 @@ impl Application for Narwhal {
         let bookmark_btn = localized_button("Hidden", SPECIAL_FONT_SIZE).height(TOP_HEIGHT).on_press(Message::BookmarkCurrent).style(current_theme.secondary.mk_theme());
         let function_cap = Button::new("").width(5000).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
         let function_buttons = Row::new().push(back_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn).push(function_cap);
+        //construct bookmark column
         let mut bookmark_buttons = Column::new();
         for i in 0..self.bookmarked_dirs.len() {
             let btn_text = Text::new(format!("{}. {}", i+1, self.bookmarked_dirs[i].name.clone())).size(SPECIAL_FONT_SIZE);
@@ -519,6 +521,7 @@ impl Application for Narwhal {
         }
         let bookmark_cap = Button::new("").height(5000).width(SIDEBAR_WIDTH).style(current_theme.sidebar.mk_theme());
         bookmark_buttons = bookmark_buttons.push(bookmark_cap);
+        //construct file view
         let mut file_listing = Column::new();
         let mut temprow = Row::new();
         let mut filebtnfutures = vec![];
@@ -535,13 +538,14 @@ impl Application for Narwhal {
             temprow = temprow.push(full);
         }
         file_listing = file_listing.push(temprow);
+        //return render commands
         let ruleh = Rule::horizontal(RULE_WIDTH);
         let rulev = Rule::vertical(RULE_WIDTH);
         let col_test = Column::new().push(function_buttons).push(ruleh).push(file_listing);
         let row_test = Row::new().push(bookmark_buttons).push(rulev).push(col_test);
         Container::new(row_test).width(Length::Fill).height(Length::Fill).into()
     }
-    fn subscription(&self) -> iced::Subscription<Message> {
+    fn subscription(&self) -> iced::Subscription<Message> {//listen in on keyboard and window events
         iced::subscription::events_with(
             |event, _| {
                 if let iced::Event::Keyboard(keyboard_event) = event {
@@ -554,7 +558,7 @@ impl Application for Narwhal {
             }
         )
     }
-    fn theme(&self) -> Self::Theme {
+    fn theme(&self) -> Self::Theme {//send in the selected application theme
         match self.theme {
             ThemeType::Light => mk_app_theme(self.themes.light.application.clone()),
             ThemeType::Dark => mk_app_theme(self.themes.dark.application.clone()),

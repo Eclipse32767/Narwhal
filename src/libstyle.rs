@@ -6,7 +6,7 @@ use iced::theme::{self, Theme};
 use serde_derive::{Serialize, Deserialize};
 
 #[derive(Clone)]
-pub struct ButtonStyle {
+pub struct ButtonStyle {//struct representation of a button theme
     pub border_radius: f32,
     pub txt_color: Color,
     pub bg_color: Option<Color>,
@@ -15,7 +15,7 @@ pub struct ButtonStyle {
     pub shadow_offset: iced::Vector,
 }
 
-impl button::StyleSheet for ButtonStyle {
+impl button::StyleSheet for ButtonStyle {//makes the buttonstyle struct follow the stylesheet API
     type Style = Theme;
     fn active(&self, _style: &Self::Style) -> button::Appearance {
         button::Appearance { 
@@ -33,29 +33,29 @@ impl button::StyleSheet for ButtonStyle {
 }
 
 #[derive(Clone)]
-pub struct ThemeSet {
+pub struct ThemeSet {//a full pack of themes
     pub light: CustomTheme,
     pub dark: CustomTheme,
     pub custom: CustomTheme,
 }
 
 #[derive(Clone)]
-pub struct CustomTheme {
+pub struct CustomTheme {//a single theme
     pub application: iced::theme::Palette,
     pub secondary: ButtonStyle,
     pub sidebar: ButtonStyle,
 }
 
-impl ButtonStyle {
+impl ButtonStyle {//helper function to make button styles easy
     pub fn mk_theme(&self) -> theme::Button {
         theme::Button::Custom(std::boxed::Box::new(self.clone()))
     }
 }
-pub fn mk_app_theme(palette: iced::theme::Palette) -> iced::Theme {
+pub fn mk_app_theme(palette: iced::theme::Palette) -> iced::Theme {//helper fn to make app styles easy
     Theme::Custom(std::boxed::Box::new(iced::theme::Custom::new(palette)))
 }
 
-pub fn col_from_string(string: String) -> Color {
+pub fn col_from_string(string: String) -> Color {//convert a string to a color
     let chars: Vec<char> = string.chars().into_iter().collect();
     let redstr = format!("{}{}", chars[0], chars[1]);
     let greenstr = format!("{}{}", chars[2], chars[3]);
@@ -67,7 +67,7 @@ pub fn col_from_string(string: String) -> Color {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct ThemeFile {
+pub struct ThemeFile {//the theme stored on disk
     pub bg_color1: String,
     pub bg_color2: String,
     pub bg_color3: String,

@@ -3,7 +3,7 @@ use freedesktop_icons::lookup;
 use xdg_utils::query_mime_info;
 const THEME: &str = "Adwaita";
 
-pub fn clean_bad_mime(mime: String) -> String {
+pub fn clean_bad_mime(mime: String) -> String {//attempt to sanitize a mimetype that could not be interpreted as an icon
     let substrings_type: Vec<&str> = mime.split("-").collect();
     let category = substrings_type[0].to_string();
     if category == "application".to_string() {
@@ -14,7 +14,7 @@ pub fn clean_bad_mime(mime: String) -> String {
         format!("{}-x-generic", category)
     }
 }
-pub fn get_file_mimetype(path: String) -> String {
+pub fn get_file_mimetype(path: String) -> String {//collect a mimetype
     let raw_data = match query_mime_info(path) {
         Ok(x) => x,
         Err(x) => panic!("{}", x)  
@@ -24,7 +24,7 @@ pub fn get_file_mimetype(path: String) -> String {
         Err(e) => panic!("{}", e)
     }
 }
-pub async fn get_file_icon(cache: HashMap<String, String>, path: String) -> (Option<HashMap<String, String>>, String) {
+pub async fn get_file_icon(cache: HashMap<String, String>, path: String) -> (Option<HashMap<String, String>>, String) {//determine a valid mimetype for icons and return it, with cache support
     let icon_cache = cache.clone();
     let mut cache_changes: HashMap<String, String> = HashMap::new();
     let icon_out = icon_cache.get(&path);
@@ -46,7 +46,7 @@ pub async fn get_file_icon(cache: HashMap<String, String>, path: String) -> (Opt
         }
     }
 }
-pub fn cacheless_get_file_icon(path: String) -> String {
+pub fn cacheless_get_file_icon(path: String) -> String {//determine a valid mimetype for icons and return it
     let mut mimetype = get_file_mimetype(path.clone()).replace("/", "-");
     if mimetype == "inode-directory" {
         String::from("folder")

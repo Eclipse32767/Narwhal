@@ -5,7 +5,7 @@ use crate::{Message, clip_file_name, FONT_SIZE, IMAGE_SCALE};
 
 
 #[derive(Clone)]
-pub struct UIFile {
+pub struct UIFile {//struct for holding the set of data needed for rendering
     pub name: String,
     pub original_index: usize,
     pub selected: bool,
@@ -13,7 +13,7 @@ pub struct UIFile {
 }
 
 impl UIFile {
-    pub async fn render<'a>(&self) -> Column<'a, Message> {
+    pub async fn render<'a>(&self) -> Column<'a, Message> {//render self into a column
         let file_icon = self.icon.clone();
         let handle = svg::Handle::from_path(file_icon);
         let image = svg(handle).height(IMAGE_SCALE).width(IMAGE_SCALE);
@@ -26,6 +26,6 @@ impl UIFile {
         Column::new().push(button).push(text).align_items(iced::Alignment::Center)
     }
 }
-pub fn localized_button<'a>(msgid: &str, fontsize: u16) -> Button<'a, Message> {
+pub fn localized_button<'a>(msgid: &str, fontsize: u16) -> Button<'a, Message> {//create a button from gettext output with the fontsize indicated
     Button::new(Text::new(gettext(msgid)).size(fontsize))
 }

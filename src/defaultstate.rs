@@ -18,23 +18,23 @@ use iced::futures::executor::block_on;
 
 impl Default for Narwhal {
     fn default() -> Self {
-        let current_dir = match env::current_dir() {
+        let current_dir = match env::current_dir() {//collect the user's working directory
             Ok(x) => x,
             Err(x) => panic!("{}", x)
         };
-        let cache_home = format!("{}/NarwhalFM", get_cache_home());
+        let cache_home = format!("{}/NarwhalFM", get_cache_home());//collect the cache from the cachefile
         let cache_text = fs::read_to_string(cache_home);
         let cache_struct: CacheFile = match cache_text {
             Ok(x) => toml::from_str(&x).unwrap(),
             Err(..) => CacheFile { contents: HashMap::new() }
         };
-        let config_home = format!("{}/Oceania/NarwhalFM.toml", get_config_home());
+        let config_home = format!("{}/Oceania/NarwhalFM.toml", get_config_home());//collect the config options from the config file
         let config_text = fs::read_to_string(config_home);
         let config_struct: Config = match config_text {
             Ok(x) => toml::from_str(&x).unwrap(),
             Err(..) => Config { sort_mode: "Folder".to_string(), show_hidden: false, bookmarks: vec![] }
         };
-        let mut finalstruct = Narwhal { 
+        let mut finalstruct = Narwhal {//build a struct with only config options injected
             files: vec![], 
             currentpath: current_dir, 
             sorttype: decode_sort(config_struct.sort_mode), 
@@ -75,7 +75,7 @@ impl Default for Narwhal {
                         shadow_offset: iced::Vector {x: 0.0, y: 0.0}
                     },
                 },
-                dark: CustomTheme { // TODO: set dark theme properly
+                dark: CustomTheme {
                     application: iced::theme::Palette {
                         background: Color::from_rgb8(0x00, 0x19, 0x36),
                         text: Color::from_rgb8(0xE0, 0xF5, 0xFF),
@@ -103,9 +103,9 @@ impl Default for Narwhal {
                 custom: get_theme_file()
             }
         };
-        finalstruct.regen_files();
-        sort_file_by_type(&mut finalstruct.files, finalstruct.sorttype.clone());
-        block_on(finalstruct.regen_uifiles());
+        finalstruct.regen_files();//generate filelist
+        sort_file_by_type(&mut finalstruct.files, finalstruct.sorttype.clone());//sort filelist
+        block_on(finalstruct.regen_uifiles());//regenerate uifiles
         finalstruct
     }
 }

@@ -492,23 +492,23 @@ impl Application for Narwhal {
             ThemeType::Dark => self.themes.dark.clone(),
             ThemeType::Custom => self.themes.custom.clone(),
         };
-        let back_btn = Button::new(Text::new(gettext("Back")).size(SPECIAL_FONT_SIZE)).on_press(Message::GoBack).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
-        let sort_btn = Button::new(Text::new(gettext("Sort")).size(SPECIAL_FONT_SIZE)).on_press(Message::SortChanged).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
+        let back_btn = localized_button("Back", SPECIAL_FONT_SIZE).on_press(Message::GoBack).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
+        let sort_btn = localized_button("Sort", SPECIAL_FONT_SIZE).on_press(Message::SortChanged).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
         let delete_btn = if self.deletion_confirmation {
-            Button::new(Text::new(gettext("Delete")).size(SPECIAL_FONT_SIZE)).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(theme::Button::Destructive)
+            localized_button("Delete", SPECIAL_FONT_SIZE).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(theme::Button::Destructive)
         } else {
-            Button::new(Text::new(gettext("Delete")).size(SPECIAL_FONT_SIZE)).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
+            localized_button("Delete", SPECIAL_FONT_SIZE).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
         let mv_btn = match self.mv_target {
-            Some(..) => Button::new(Text::new(gettext("Move Here")).size(SPECIAL_FONT_SIZE)).on_press(Message::MvClicked),
-            None => Button::new(Text::new(gettext("Move")).size(SPECIAL_FONT_SIZE)).on_press(Message::MvClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
+            Some(..) => localized_button("Move Here", SPECIAL_FONT_SIZE).on_press(Message::MvClicked),
+            None => localized_button("Move", SPECIAL_FONT_SIZE).on_press(Message::MvClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
         let cp_btn = match self.cp_target {
-            Some(..) => Button::new(Text::new(gettext("Paste")).size(SPECIAL_FONT_SIZE)).on_press(Message::CpClicked),
-            None => Button::new(Text::new(gettext("Copy")).size(SPECIAL_FONT_SIZE)).on_press(Message::CpClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
+            Some(..) => localized_button("Paste", SPECIAL_FONT_SIZE).on_press(Message::CpClicked),
+            None => localized_button("Copy", SPECIAL_FONT_SIZE).on_press(Message::CpClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
-        let hidden_btn = Button::new(Text::new(gettext("Hidden")).size(SPECIAL_FONT_SIZE)).height(TOP_HEIGHT).on_press(Message::HiddenChanged).style(current_theme.secondary.mk_theme());
-        let bookmark_btn = Button::new(Text::new(gettext("Bookmark")).size(SPECIAL_FONT_SIZE)).height(TOP_HEIGHT).on_press(Message::BookmarkCurrent).style(current_theme.secondary.mk_theme());
+        let hidden_btn = localized_button("Hidden", SPECIAL_FONT_SIZE).height(TOP_HEIGHT).on_press(Message::HiddenChanged).style(current_theme.secondary.mk_theme());
+        let bookmark_btn = localized_button("Hidden", SPECIAL_FONT_SIZE).height(TOP_HEIGHT).on_press(Message::BookmarkCurrent).style(current_theme.secondary.mk_theme());
         let function_cap = Button::new("").width(5000).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
         let function_buttons = Row::new().push(back_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn).push(function_cap);
         let mut bookmark_buttons = Column::new();

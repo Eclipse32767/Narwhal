@@ -128,13 +128,13 @@ impl Narwhal {
     async fn regen_uifiles(&mut self) {
         let mut items_flushed = 0;
         let max_iter = self.desired_cols * self.desired_rows;
-        let mut futures = vec![];
-        let mut names = vec![];
-        let mut selectedvals = vec![];
-        let mut originalindeces = vec![];
+        let mut futures = Vec::with_capacity(max_iter as usize);
+        let mut names = Vec::with_capacity(max_iter as usize);
+        let mut selectedvals = Vec::with_capacity(max_iter as usize);
+        let mut originalindeces = Vec::with_capacity(max_iter as usize);
         let mut all_changes = vec![];
         let exec = iced::executor::Default::new().unwrap();
-        self.uifiles = vec![];
+        self.uifiles = Vec::with_capacity(max_iter as usize);
         for i in 0..self.files.len() {
             if items_flushed == max_iter {
                 break;

@@ -136,7 +136,7 @@ impl Narwhal {
         let exec = iced::executor::Default::new().unwrap();
         self.uifiles = Vec::with_capacity(max_iter as usize);
         for i in 0..self.files.len() {
-            if items_flushed == max_iter {
+            if items_flushed >= max_iter {
                 break;
             }
             let name = self.files[i].file_name().to_string_lossy().to_string();

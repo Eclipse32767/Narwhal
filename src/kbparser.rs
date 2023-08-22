@@ -8,6 +8,9 @@ impl Narwhal {
     pub fn kbparse(&mut self, kb_event: iced::keyboard::Event) {
         match kb_event {
             iced::keyboard::Event::KeyPressed { key_code, modifiers } => {
+                if self.typemode {
+
+                } else {
                 if key_code == iced::keyboard::KeyCode::Left {//move the cursor to the left, wrapping around if necessary
                     let mut old_index = self.uifiles.len() - 1;
                     for i in 0..self.uifiles.len() {
@@ -23,8 +26,7 @@ impl Narwhal {
                     }
                     self.last_clicked_file = Some(self.uifiles[old_index].original_index);
                     block_on(self.regen_uifiles());
-                }
-                if key_code == iced::keyboard::KeyCode::Right {//move the cursor to the right, wrapping if necessary
+                } else if key_code == iced::keyboard::KeyCode::Right {//move the cursor to the right, wrapping if necessary
                     let mut old_index = 0;
                     for i in 0..self.uifiles.len() {
                         match self.last_clicked_file {
@@ -39,8 +41,7 @@ impl Narwhal {
                     }
                     self.last_clicked_file = Some(self.uifiles[old_index].original_index);
                     block_on(self.regen_uifiles());
-                }
-                if key_code == iced::keyboard::KeyCode::Down {//move the cursor down, wrap if necessary
+                } else if key_code == iced::keyboard::KeyCode::Down {//move the cursor down, wrap if necessary
                     let mut old_index = None;
                     for i in 0..self.uifiles.len() {
                         match self.last_clicked_file {
@@ -67,8 +68,7 @@ impl Narwhal {
                     };
                     self.last_clicked_file = Some(self.uifiles[old_index.unwrap()].original_index);
                     block_on(self.regen_uifiles());
-                }
-                if key_code == iced::keyboard::KeyCode::Up {//move cursor up, wrap if necessary
+                } else if key_code == iced::keyboard::KeyCode::Up {//move cursor up, wrap if necessary
                     let mut old_index = None;
                     for i in 0..self.uifiles.len() {
                         match self.last_clicked_file {
@@ -105,26 +105,21 @@ impl Narwhal {
                     };
                     self.last_clicked_file = Some(self.uifiles[old_index.unwrap()].original_index);
                     block_on(self.regen_uifiles());
-                }
-                if key_code == iced::keyboard::KeyCode::Enter {//interact with hoverred entry
+                } else if key_code == iced::keyboard::KeyCode::Enter {//interact with hovered entry
                     match self.last_clicked_file {
                         Some(x) => self.interact_selected_entry(x),
                         None => {}
                     }
-                }
-                if key_code == iced::keyboard::KeyCode::Backspace {//equivalent to cd ..
+                } else if key_code == iced::keyboard::KeyCode::Backspace {//equivalent to cd ..
                     self.go_back_directory();
-                }
-                if key_code == iced::keyboard::KeyCode::S && modifiers == iced::keyboard::Modifiers::SHIFT {//cycle sort mode forwards
+                } else if key_code == iced::keyboard::KeyCode::S && modifiers == iced::keyboard::Modifiers::SHIFT {//cycle sort mode forwards
                     self.change_sort(true);
                 } else if key_code == iced::keyboard::KeyCode::S {//cycle sort mode backwards
                     self.change_sort(false);
-                }
-                if key_code == iced::keyboard::KeyCode::H {//toggle hidden files
+                } else if key_code == iced::keyboard::KeyCode::H {//toggle hidden files
                     self.show_hidden = !self.show_hidden;
                     block_on(self.regen_uifiles());
-                }
-                if key_code == iced::keyboard::KeyCode::Minus && modifiers == iced::keyboard::Modifiers::SHIFT {//delete files
+                } else if key_code == iced::keyboard::KeyCode::Minus && modifiers == iced::keyboard::Modifiers::SHIFT {//delete files
                     match self.last_clicked_file {
                         Some(x) => {
                             if self.deletion_confirmation {
@@ -136,8 +131,7 @@ impl Narwhal {
                             self.deletion_confirmation = false;
                         }
                     }
-                }
-                if key_code == iced::keyboard::KeyCode::B && modifiers.shift() {//bookmark or unbookmark current dir
+                } else if key_code == iced::keyboard::KeyCode::B && modifiers.shift() {//bookmark or unbookmark current dir
                     let dir = self.currentpath.to_string_lossy().to_string();
                     let paths: Vec<&str> = dir.split('/').into_iter().collect();
                     let name = paths[paths.len()-1].to_string();
@@ -156,78 +150,67 @@ impl Narwhal {
                             self.bookmarked_dirs.push(bookmark);
                         }
                     }
-                }
-                if key_code == iced::keyboard::KeyCode::Key1 && self.bookmarked_dirs.len() > 0 {//activate bookmarkdir 1
+                } else if key_code == iced::keyboard::KeyCode::Key1 && self.bookmarked_dirs.len() > 0 {//activate bookmarkdir 1
                     self.currentpath = PathBuf::from(self.bookmarked_dirs[0].path.clone());
                     self.regen_files();
                     sort_file_by_type(&mut self.files, self.sorttype.clone());
                     self.last_clicked_file = None;
                     block_on(self.regen_uifiles());
-                }
-                if key_code == iced::keyboard::KeyCode::Key2 && self.bookmarked_dirs.len() > 1 {//activate bookmarkdir 2
+                } else if key_code == iced::keyboard::KeyCode::Key2 && self.bookmarked_dirs.len() > 1 {//activate bookmarkdir 2
                     self.currentpath = PathBuf::from(self.bookmarked_dirs[1].path.clone());
                     self.regen_files();
                     sort_file_by_type(&mut self.files, self.sorttype.clone());
                     self.last_clicked_file = None;
                     block_on(self.regen_uifiles());
-                }
-                if key_code == iced::keyboard::KeyCode::Key3 && self.bookmarked_dirs.len() > 2 {//activate bookmarkdir 3
+                } else if key_code == iced::keyboard::KeyCode::Key3 && self.bookmarked_dirs.len() > 2 {//activate bookmarkdir 3
                     self.currentpath = PathBuf::from(self.bookmarked_dirs[2].path.clone());
                     self.regen_files();
                     sort_file_by_type(&mut self.files, self.sorttype.clone());
                     self.last_clicked_file = None;
                     block_on(self.regen_uifiles());
-                }
-                if key_code == iced::keyboard::KeyCode::Key4 && self.bookmarked_dirs.len() > 3 {//activate bookmarkdir 4
+                } else if key_code == iced::keyboard::KeyCode::Key4 && self.bookmarked_dirs.len() > 3 {//activate bookmarkdir 4
                     self.currentpath = PathBuf::from(self.bookmarked_dirs[3].path.clone());
                     self.regen_files();
                     sort_file_by_type(&mut self.files, self.sorttype.clone());
                     self.last_clicked_file = None;
                     block_on(self.regen_uifiles());
-                }
-                if key_code == iced::keyboard::KeyCode::Key5 && self.bookmarked_dirs.len() > 4 {//activate bookmarkdir 5
+                } else if key_code == iced::keyboard::KeyCode::Key5 && self.bookmarked_dirs.len() > 4 {//activate bookmarkdir 5
                     self.currentpath = PathBuf::from(self.bookmarked_dirs[4].path.clone());
                     self.regen_files();
                     sort_file_by_type(&mut self.files, self.sorttype.clone());
                     self.last_clicked_file = None;
                     block_on(self.regen_uifiles());
-                }
-                if key_code == iced::keyboard::KeyCode::Key6 && self.bookmarked_dirs.len() > 5 {//activate bookmarkdir 6
+                } else if key_code == iced::keyboard::KeyCode::Key6 && self.bookmarked_dirs.len() > 5 {//activate bookmarkdir 6
                     self.currentpath = PathBuf::from(self.bookmarked_dirs[5].path.clone());
                     self.regen_files();
                     sort_file_by_type(&mut self.files, self.sorttype.clone());
                     self.last_clicked_file = None;
                     block_on(self.regen_uifiles());
-                }
-                if key_code == iced::keyboard::KeyCode::Key7 && self.bookmarked_dirs.len() > 6 {//activate bookmarkdir 7
+                } else if key_code == iced::keyboard::KeyCode::Key7 && self.bookmarked_dirs.len() > 6 {//activate bookmarkdir 7
                     self.currentpath = PathBuf::from(self.bookmarked_dirs[6].path.clone());
                     self.regen_files();
                     sort_file_by_type(&mut self.files, self.sorttype.clone());
                     self.last_clicked_file = None;
                     block_on(self.regen_uifiles());
-                }
-                if key_code == iced::keyboard::KeyCode::Key8 && self.bookmarked_dirs.len() > 7 {//activate bookmarkdir 8
+                } else if key_code == iced::keyboard::KeyCode::Key8 && self.bookmarked_dirs.len() > 7 {//activate bookmarkdir 8
                     self.currentpath = PathBuf::from(self.bookmarked_dirs[7].path.clone());
                     self.regen_files();
                     sort_file_by_type(&mut self.files, self.sorttype.clone());
                     self.last_clicked_file = None;
                     block_on(self.regen_uifiles());
-                }
-                if key_code == iced::keyboard::KeyCode::Key9 && self.bookmarked_dirs.len() > 8 {//activate bookmarkdir 9
+                } else if key_code == iced::keyboard::KeyCode::Key9 && self.bookmarked_dirs.len() > 8 {//activate bookmarkdir 9
                     self.currentpath = PathBuf::from(self.bookmarked_dirs[8].path.clone());
                     self.regen_files();
                     sort_file_by_type(&mut self.files, self.sorttype.clone());
                     self.last_clicked_file = None;
                     block_on(self.regen_uifiles());
-                }
-                if key_code == iced::keyboard::KeyCode::Key0 && self.bookmarked_dirs.len() > 9 {//activate bookmarkdir 10
+                } else if key_code == iced::keyboard::KeyCode::Key0 && self.bookmarked_dirs.len() > 9 {//activate bookmarkdir 10
                     self.currentpath = PathBuf::from(self.bookmarked_dirs[9].path.clone());
                     self.regen_files();
                     sort_file_by_type(&mut self.files, self.sorttype.clone());
                     self.last_clicked_file = None;
                     block_on(self.regen_uifiles());
-                }
-                if key_code == iced::keyboard::KeyCode::M {//move files around
+                } else if key_code == iced::keyboard::KeyCode::M {//move files around
                     match self.mv_target {
                         Some(..) => {
                             self.mv_file();
@@ -244,8 +227,7 @@ impl Narwhal {
                             }
                         }
                     }
-                }
-                if key_code == iced::keyboard::KeyCode::C {//copy files
+                } else if key_code == iced::keyboard::KeyCode::C {//copy files
                     match self.cp_target {
                         Some(..) => {
                             self.cp_file();
@@ -262,7 +244,12 @@ impl Narwhal {
                             }
                         }
                     }
+                } else if key_code == iced::keyboard::KeyCode::N && modifiers.shift() {//mkdir
+                    self.mkdir();
+                } else if key_code == iced::keyboard::KeyCode::N {//touch
+                    self.touch();
                 }
+            }
             }
             iced::keyboard::Event::KeyReleased { key_code: _, modifiers: _ } => {},
             iced::keyboard::Event::CharacterReceived(_) => {},

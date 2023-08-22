@@ -59,6 +59,7 @@ struct Narwhal {//contains all application state
     cp_target: Option<String>,
     themes: ThemeSet,
     theme: ThemeType,
+    typemode: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -74,6 +75,8 @@ pub enum Message {//enum representing button events
     DeleteClicked,
     MvClicked,
     CpClicked,
+    MkFile,
+    MkDir,
 }
 fn get_file_type(metadata: Metadata) -> FileType {//collects the filetype from metadata
     if metadata.is_dir() {
@@ -300,6 +303,22 @@ impl Narwhal {
         self.last_clicked_file = None;
         block_on(self.regen_uifiles());
     }
+    fn touch(&mut self) {
+        let path = format!("{}/NewFile", self.currentpath.to_string_lossy().to_string());
+        Command::new("touch").arg(path).output().unwrap();
+        self.regen_files();
+        sort_file_by_type(&mut self.files, self.sorttype.clone());
+        self.last_clicked_file = None;
+        block_on(self.regen_uifiles());
+    }
+    fn mkdir(&mut self) {
+        let path = format!("{}/NewFolder", self.currentpath.to_string_lossy().to_string());
+        Command::new("mkdir").arg(path).output().unwrap();
+        self.regen_files();
+        sort_file_by_type(&mut self.files, self.sorttype.clone());
+        self.last_clicked_file = None;
+        block_on(self.regen_uifiles());
+    }
 }
 fn sort_file_by_type(input: &mut Vec<DirEntry>, sort_type: SortType) {//sort files based on the chosen SortType
     match sort_type {
@@ -484,6 +503,14 @@ impl Application for Narwhal {
                 }
                 iced::Command::none()
             }
+            Message::MkDir => {
+                self.mkdir();
+                iced::Command::none()
+            }
+            Message::MkFile => {
+                self.touch();
+                iced::Command::none()
+            }
         }
     }
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {//render code!
@@ -509,11 +536,13 @@ impl Application for Narwhal {
             None => localized_button("Copy", SPECIAL_FONT_SIZE).on_press(Message::CpClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
         let hidden_btn = localized_button("Hidden", SPECIAL_FONT_SIZE).height(TOP_HEIGHT).on_press(Message::HiddenChanged).style(current_theme.secondary.mk_theme());
-        let bookmark_btn = localized_button("Hidden", SPECIAL_FONT_SIZE).height(TOP_HEIGHT).on_press(Message::BookmarkCurrent).style(current_theme.secondary.mk_theme());
+        let bookmark_btn = localized_button("Bookmark", SPECIAL_FONT_SIZE).height(TOP_HEIGHT).on_press(Message::BookmarkCurrent).style(current_theme.secondary.mk_theme());
+        let touch_btn = localized_button(" Make File ", SPECIAL_FONT_SIZE).width(SIDEBAR_WIDTH).on_press(Message::MkFile).style(current_theme.sidebar.mk_theme());
+        let mkdir_btn = localized_button(" Make Folder ", SPECIAL_FONT_SIZE).width(SIDEBAR_WIDTH).on_press(Message::MkDir).style(current_theme.sidebar.mk_theme());
         let function_cap = Button::new("").width(5000).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
         let function_buttons = Row::new().push(back_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn).push(function_cap);
         //construct bookmark column
-        let mut bookmark_buttons = Column::new();
+        let mut bookmark_buttons = Column::new().push(mkdir_btn).push(touch_btn);
         for i in 0..self.bookmarked_dirs.len() {
             let btn_text = Text::new(format!("{}. {}", i+1, self.bookmarked_dirs[i].name.clone())).size(SPECIAL_FONT_SIZE);
             let btn = Button::new(btn_text).on_press(Message::BookmarkClicked(i)).width(SIDEBAR_WIDTH).style(current_theme.sidebar.mk_theme());

@@ -49,6 +49,7 @@ impl Default for Narwhal {
             mv_target: None, 
             cp_target: None,
             theme: get_set_theme(),
+            typemode: false,
             themes: ThemeSet {
                 light: CustomTheme {
                     application: iced::theme::Palette {

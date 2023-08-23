@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-07-27 00:25+0000\n"
+"POT-Creation-Date: 2023-08-23 22:38+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,38 +17,55 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.rs:1053
+#. construct top bar
+#: src/main.rs:562
 msgid "Back"
 msgstr ""
 
-#: src/main.rs:1054
+#: src/main.rs:563
 msgid "Sort"
 msgstr ""
 
-#: src/main.rs:1056 src/main.rs:1058
+#: src/main.rs:565 src/main.rs:567
 msgid "Delete"
 msgstr ""
 
-#: src/main.rs:1061
+#: src/main.rs:570
 msgid "Move Here"
 msgstr ""
 
-#: src/main.rs:1062
+#: src/main.rs:571
 msgid "Move"
 msgstr ""
 
-#: src/main.rs:1065
+#: src/main.rs:574
 msgid "Paste"
 msgstr ""
 
-#: src/main.rs:1066
+#: src/main.rs:575
 msgid "Copy"
 msgstr ""
 
-#: src/main.rs:1068
+#: src/main.rs:577
 msgid "Hidden"
 msgstr ""
 
-#: src/main.rs:1069
+#: src/main.rs:578
 msgid "Bookmark"
+msgstr ""
+
+#: src/main.rs:579
+msgid " Make File "
+msgstr ""
+
+#: src/main.rs:580
+msgid " Make Folder "
+msgstr ""
+
+#: src/main.rs:582
+msgid "Rename"
+msgstr ""
+
+#: src/main.rs:586
+msgid "Placeholder"
 msgstr ""

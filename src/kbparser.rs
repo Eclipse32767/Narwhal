@@ -274,7 +274,9 @@ impl Narwhal {
             }
             iced::keyboard::Event::KeyReleased { key_code: _, modifiers: _ } => {},
             iced::keyboard::Event::CharacterReceived(_) => {},
-            iced::keyboard::Event::ModifiersChanged(_) => {},
+            iced::keyboard::Event::ModifiersChanged(modifiers) => {
+                self.show_keybinds = modifiers.control();
+            },
         }
         return_command
     }

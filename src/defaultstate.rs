@@ -52,6 +52,7 @@ impl Default for Narwhal {
             theme: get_set_theme(),
             typemode: None,
             rename_id: text_input::Id::unique(),
+            show_keybinds: false,
             themes: ThemeSet {
                 light: CustomTheme {
                     application: iced::theme::Palette {

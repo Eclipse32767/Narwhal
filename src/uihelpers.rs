@@ -1,4 +1,3 @@
-use gettextrs::gettext;
 use iced::widget::{Column, Button, svg, Text};
 use iced_style::theme;
 use crate::{Message, clip_file_name, FONT_SIZE, IMAGE_SCALE};
@@ -26,6 +25,12 @@ impl UIFile {
         Column::new().push(button).push(text).align_items(iced::Alignment::Center)
     }
 }
+/* 
 pub fn localized_button<'a>(msgid: &str, fontsize: u16) -> Button<'a, Message> {//create a button from gettext output with the fontsize indicated
     Button::new(Text::new(gettext(msgid)).size(fontsize))
+}
+*/
+
+pub fn string_button<'a>(msg: String, fontsize: u16)-> Button<'a, Message> {
+    Button::new(Text::new(msg).size(fontsize))
 }

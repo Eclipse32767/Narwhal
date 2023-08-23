@@ -61,6 +61,7 @@ struct Narwhal {//contains all application state
     theme: ThemeType,
     typemode: Option<String>,
     rename_id: text_input::Id,
+    show_keybinds: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -557,28 +558,36 @@ impl Application for Narwhal {
             ThemeType::Dark => self.themes.dark.clone(),
             ThemeType::Custom => self.themes.custom.clone(),
         }; 
+        let templates = match self.show_keybinds {
+            true => ["<Backspace>", "<S>", "<Shift+Minus>", "<M>", "<M>", "<C>", "<C>", "<H>",  "<Shift+B>", "<N>", "<Shift+N>", "<R>"],
+            false => ["Back", "Sort", "Delete", "Move Here", "Move", "Paste", "Copy", "Hidden", "Bookmark", "Make File", "Make Folder", "Rename"]
+        };
+        let mut translated = vec![];
+        for str in templates {
+            translated.push(gettext(str))
+        }
         // construct top bar
-        let back_btn = localized_button("Back", SPECIAL_FONT_SIZE).on_press(Message::GoBack).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
-        let sort_btn = localized_button("Sort", SPECIAL_FONT_SIZE).on_press(Message::SortChanged).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
+        let back_btn = string_button(translated[0].clone(), SPECIAL_FONT_SIZE).on_press(Message::GoBack).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
+        let sort_btn = string_button(translated[1].clone(), SPECIAL_FONT_SIZE).on_press(Message::SortChanged).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
         let delete_btn = if self.deletion_confirmation {
-            localized_button("Delete", SPECIAL_FONT_SIZE).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(theme::Button::Destructive)
+            string_button(translated[2].clone(), SPECIAL_FONT_SIZE).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(theme::Button::Destructive)
         } else {
-            localized_button("Delete", SPECIAL_FONT_SIZE).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
+            string_button(translated[2].clone(), SPECIAL_FONT_SIZE).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
         let mv_btn = match self.mv_target {
-            Some(..) => localized_button("Move Here", SPECIAL_FONT_SIZE).on_press(Message::MvClicked),
-            None => localized_button("Move", SPECIAL_FONT_SIZE).on_press(Message::MvClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
+            Some(..) => string_button(translated[3].clone(), SPECIAL_FONT_SIZE).on_press(Message::MvClicked),
+            None => string_button(translated[4].clone(), SPECIAL_FONT_SIZE).on_press(Message::MvClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
         let cp_btn = match self.cp_target {
-            Some(..) => localized_button("Paste", SPECIAL_FONT_SIZE).on_press(Message::CpClicked),
-            None => localized_button("Copy", SPECIAL_FONT_SIZE).on_press(Message::CpClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
+            Some(..) => string_button(translated[5].clone(), SPECIAL_FONT_SIZE).on_press(Message::CpClicked),
+            None => string_button(translated[6].clone(), SPECIAL_FONT_SIZE).on_press(Message::CpClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
-        let hidden_btn = localized_button("Hidden", SPECIAL_FONT_SIZE).height(TOP_HEIGHT).on_press(Message::HiddenChanged).style(current_theme.secondary.mk_theme());
-        let bookmark_btn = localized_button("Bookmark", SPECIAL_FONT_SIZE).height(TOP_HEIGHT).on_press(Message::BookmarkCurrent).style(current_theme.secondary.mk_theme());
-        let touch_btn = localized_button(" Make File ", SPECIAL_FONT_SIZE).width(SIDEBAR_WIDTH).on_press(Message::MkFile).style(current_theme.sidebar.mk_theme());
-        let mkdir_btn = localized_button(" Make Folder ", SPECIAL_FONT_SIZE).width(SIDEBAR_WIDTH).on_press(Message::MkDir).style(current_theme.sidebar.mk_theme());
+        let hidden_btn = string_button(translated[7].clone(), SPECIAL_FONT_SIZE).height(TOP_HEIGHT).on_press(Message::HiddenChanged).style(current_theme.secondary.mk_theme());
+        let bookmark_btn = string_button(translated[8].clone(), SPECIAL_FONT_SIZE).height(TOP_HEIGHT).on_press(Message::BookmarkCurrent).style(current_theme.secondary.mk_theme());
+        let touch_btn = string_button(translated[9].clone(), SPECIAL_FONT_SIZE).width(SIDEBAR_WIDTH).on_press(Message::MkFile).style(current_theme.sidebar.mk_theme());
+        let mkdir_btn = string_button(translated[10].clone(), SPECIAL_FONT_SIZE).width(SIDEBAR_WIDTH).on_press(Message::MkDir).style(current_theme.sidebar.mk_theme());
         let function_cap = Button::new("").width(5000).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
-        let rename_btn = localized_button("Rename", SPECIAL_FONT_SIZE).height(TOP_HEIGHT).on_press(Message::RenameToggle).style(current_theme.secondary.mk_theme());
+        let rename_btn = string_button(translated[11].clone(), SPECIAL_FONT_SIZE).height(TOP_HEIGHT).on_press(Message::RenameToggle).style(current_theme.secondary.mk_theme());
         let mut function_buttons = Row::new().push(back_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn).push(rename_btn);
         function_buttons = match &self.typemode {
             Some(txt) => {
@@ -590,7 +599,10 @@ impl Application for Narwhal {
         //construct bookmark column
         let mut bookmark_buttons = Column::new().push(mkdir_btn).push(touch_btn);
         for i in 0..self.bookmarked_dirs.len() {
-            let btn_text = Text::new(format!("{}. {}", i+1, self.bookmarked_dirs[i].name.clone())).size(SPECIAL_FONT_SIZE);
+            let btn_text = match self.show_keybinds {
+                false => Text::new(self.bookmarked_dirs[i].name.clone()).size(SPECIAL_FONT_SIZE),
+                true => Text::new(format!("<{}>", i+1)).size(SPECIAL_FONT_SIZE),
+            };
             let btn = Button::new(btn_text).on_press(Message::BookmarkClicked(i)).width(SIDEBAR_WIDTH).style(current_theme.sidebar.mk_theme());
             bookmark_buttons = bookmark_buttons.push(btn);
         }

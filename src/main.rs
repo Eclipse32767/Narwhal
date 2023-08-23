@@ -582,7 +582,7 @@ impl Application for Narwhal {
         let mut function_buttons = Row::new().push(back_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn).push(rename_btn);
         function_buttons = match &self.typemode {
             Some(txt) => {
-                let rename_input = TextInput::new(gettext("Placeholder").as_str(), txt.as_str()).on_input(Message::RenameUpdate).size(20).id(self.rename_id.clone());
+                let rename_input = TextInput::new(gettext("Placeholder").as_str(), txt.as_str()).on_input(Message::RenameUpdate).size(SPECIAL_FONT_SIZE).id(self.rename_id.clone());
                 function_buttons.push(rename_input)
             }
             None => function_buttons.push(function_cap),

@@ -1,16 +1,33 @@
 use std::path::PathBuf;
 
-use iced::futures::executor::block_on;
+use iced::{futures::executor::block_on, widget::text_input};
 
 use crate::{Narwhal, confighelpers::BookmarkDir, sort_file_by_type};
 
 impl Narwhal {
-    pub fn kbparse(&mut self, kb_event: iced::keyboard::Event) {
+    pub fn kbparse(&mut self, kb_event: iced::keyboard::Event) -> iced::Command<<Narwhal as iced::Application>::Message> {
+        let mut return_command = iced::Command::none();
         match kb_event {
             iced::keyboard::Event::KeyPressed { key_code, modifiers } => {
-                if self.typemode {
-
-                } else {
+                match &self.typemode {
+                    Some(val) => {
+                        if key_code == iced::keyboard::KeyCode::Escape {
+                            self.typemode = None;
+                        } else if key_code == iced::keyboard::KeyCode::Enter {
+                            match  self.last_clicked_file {
+                                Some(..) => {
+                                    if val.len() >= 1 {
+                                        self.rename()
+                                    }
+                                    self.typemode = None;
+                                }
+                                None => {
+                                    self.typemode = None;
+                                }
+                            }
+                        }
+                    },
+                    None => {
                 if key_code == iced::keyboard::KeyCode::Left {//move the cursor to the left, wrapping around if necessary
                     let mut old_index = self.uifiles.len() - 1;
                     for i in 0..self.uifiles.len() {
@@ -248,12 +265,17 @@ impl Narwhal {
                     self.mkdir();
                 } else if key_code == iced::keyboard::KeyCode::N {//touch
                     self.touch();
+                } else if key_code == iced::keyboard::KeyCode::R {//enter rename mode
+                    self.typemode = Some(String::default());
+                    return_command = text_input::focus(self.rename_id.clone())
                 }
+            }
             }
             }
             iced::keyboard::Event::KeyReleased { key_code: _, modifiers: _ } => {},
             iced::keyboard::Event::CharacterReceived(_) => {},
             iced::keyboard::Event::ModifiersChanged(_) => {},
         }
+        return_command
     }
 }

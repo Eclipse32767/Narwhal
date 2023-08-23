@@ -2,7 +2,7 @@
 use iced::futures::executor::block_on;
 use iced::futures::future::join_all;
 use iced::{Application, Result, Settings, executor, Length};
-use iced::widget::{Button, Text, Row, Column, Container, Rule};
+use iced::widget::{Button, Text, Row, Column, Container, Rule, text_input, TextInput};
 use iced::theme;
 use iced_style::Theme;
 use std::collections::HashMap;
@@ -59,7 +59,8 @@ struct Narwhal {//contains all application state
     cp_target: Option<String>,
     themes: ThemeSet,
     theme: ThemeType,
-    typemode: bool,
+    typemode: Option<String>,
+    rename_id: text_input::Id,
 }
 
 #[derive(Debug, Clone)]
@@ -77,6 +78,8 @@ pub enum Message {//enum representing button events
     CpClicked,
     MkFile,
     MkDir,
+    RenameToggle,
+    RenameUpdate(String)
 }
 fn get_file_type(metadata: Metadata) -> FileType {//collects the filetype from metadata
     if metadata.is_dir() {
@@ -175,6 +178,7 @@ impl Narwhal {
         for change in all_changes {//for every change, push it onto the cache
             self.icon_cache.extend(change.into_iter());
         }
+        self.typemode = None;
     }
     fn regen_files(&mut self) {//rebuild filelist
         self.files = vec![];
@@ -319,6 +323,15 @@ impl Narwhal {
         self.last_clicked_file = None;
         block_on(self.regen_uifiles());
     }
+    fn rename(&mut self) {
+        let src_path = self.files[self.last_clicked_file.unwrap()].path().to_string_lossy().to_string();
+        let dest_path = format!("{}/{}", self.currentpath.to_string_lossy().to_string(), self.typemode.clone().unwrap());
+        Command::new("mv").arg(src_path).arg(dest_path).output().unwrap();
+        self.regen_files();
+        sort_file_by_type(&mut self.files, self.sorttype.clone());
+        self.last_clicked_file = None;
+        block_on(self.regen_uifiles());
+    }
 }
 fn sort_file_by_type(input: &mut Vec<DirEntry>, sort_type: SortType) {//sort files based on the chosen SortType
     match sort_type {
@@ -405,8 +418,7 @@ impl Application for Narwhal {
                 iced::Command::none()
             }
             Message::KeyboardUpdate(kb_event) => {//send to keyboard parser
-                self.kbparse(kb_event);
-                iced::Command::none()
+                self.kbparse(kb_event)
             }
             Message::WindowUpdate(win_event) => {
                 match win_event {
@@ -511,6 +523,32 @@ impl Application for Narwhal {
                 self.touch();
                 iced::Command::none()
             }
+            Message::RenameToggle => {
+                match &self.typemode {
+                    Some(val) => {
+                        match self.last_clicked_file {
+                            Some(..) => {
+                                if val.len() >= 1 {
+                                    self.rename()
+                                }
+                                self.typemode = None
+                            }
+                            None => {
+                                self.typemode = None
+                            }
+                        }
+                        iced::Command::none()
+                    },
+                    None => {
+                        self.typemode = Some(String::default());
+                        text_input::focus(self.rename_id.clone())
+                    }
+                }
+            }
+            Message::RenameUpdate(x) => {
+                self.typemode = Some(x);
+                iced::Command::none()
+            }
         }
     }
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {//render code!
@@ -540,7 +578,15 @@ impl Application for Narwhal {
         let touch_btn = localized_button(" Make File ", SPECIAL_FONT_SIZE).width(SIDEBAR_WIDTH).on_press(Message::MkFile).style(current_theme.sidebar.mk_theme());
         let mkdir_btn = localized_button(" Make Folder ", SPECIAL_FONT_SIZE).width(SIDEBAR_WIDTH).on_press(Message::MkDir).style(current_theme.sidebar.mk_theme());
         let function_cap = Button::new("").width(5000).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
-        let function_buttons = Row::new().push(back_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn).push(function_cap);
+        let rename_btn = localized_button("Rename", SPECIAL_FONT_SIZE).height(TOP_HEIGHT).on_press(Message::RenameToggle).style(current_theme.secondary.mk_theme());
+        let mut function_buttons = Row::new().push(back_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn).push(rename_btn);
+        function_buttons = match &self.typemode {
+            Some(txt) => {
+                let rename_input = TextInput::new(gettext("Placeholder").as_str(), txt.as_str()).on_input(Message::RenameUpdate).size(20).id(self.rename_id.clone());
+                function_buttons.push(rename_input)
+            }
+            None => function_buttons.push(function_cap),
+        };
         //construct bookmark column
         let mut bookmark_buttons = Column::new().push(mkdir_btn).push(touch_btn);
         for i in 0..self.bookmarked_dirs.len() {

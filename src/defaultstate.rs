@@ -2,6 +2,7 @@ use crate::Narwhal;
 use crate::confighelpers::get_theme_file;
 use crate::sort_file_by_type;
 use std::{env, fs};
+use iced::widget::text_input;
 use toml;
 use crate::CacheFile;
 use std::collections::HashMap;
@@ -49,7 +50,8 @@ impl Default for Narwhal {
             mv_target: None, 
             cp_target: None,
             theme: get_set_theme(),
-            typemode: false,
+            typemode: None,
+            rename_id: text_input::Id::unique(),
             themes: ThemeSet {
                 light: CustomTheme {
                     application: iced::theme::Palette {

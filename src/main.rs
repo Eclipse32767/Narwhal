@@ -12,6 +12,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use toml;
 use gettextrs::*;
+use gettextrs::gettext as tr;
 use libstyle::{ThemeSet, CustomTheme, ButtonStyle, ThemeFile, mk_app_theme, col_from_string};
 mod libstyle;
 use iconhelpers::{get_file_icon, get_file_mimetype};
@@ -558,14 +559,10 @@ impl Application for Narwhal {
             ThemeType::Dark => self.themes.dark.clone(),
             ThemeType::Custom => self.themes.custom.clone(),
         }; 
-        let templates = match self.show_keybinds {
-            true => ["<Backspace>", "<S>", "<Shift+Minus>", "<M>", "<M>", "<C>", "<C>", "<H>",  "<Shift+B>", "<N>", "<Shift+N>", "<R>"],
-            false => ["Back", "Sort", "Delete", "Move Here", "Move", "Paste", "Copy", "Hidden", "Bookmark", "Make File", "Make Folder", "Rename"]
+        let translated = match self.show_keybinds {
+            true => [tr("<Backspace>"), tr("<S>"), tr("<Shift+Minus>"), tr("<M>"), tr("<M>"), tr("<C>"), tr("<C>"), tr("<H>"),  tr("<Shift+B>"), tr("<N>"), tr("<Shift+N>"), tr("<R>")],
+            false => [tr("Back"), tr("Sort"), tr("Delete"), tr("Move Here"), tr("Move"), tr("Paste"), tr("Copy"), tr("Hidden"), tr("Bookmark"), tr("Make File"), tr("Make Folder"), tr("Rename")]
         };
-        let mut translated = vec![];
-        for str in templates {
-            translated.push(gettext(str))
-        }
         // construct top bar
         let back_btn = string_button(translated[0].clone(), SPECIAL_FONT_SIZE).on_press(Message::GoBack).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
         let sort_btn = string_button(translated[1].clone(), SPECIAL_FONT_SIZE).on_press(Message::SortChanged).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
@@ -591,7 +588,7 @@ impl Application for Narwhal {
         let mut function_buttons = Row::new().push(back_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn).push(rename_btn);
         function_buttons = match &self.typemode {
             Some(txt) => {
-                let rename_input = TextInput::new(gettext("Placeholder").as_str(), txt.as_str()).on_input(Message::RenameUpdate).size(SPECIAL_FONT_SIZE).id(self.rename_id.clone());
+                let rename_input = TextInput::new(tr("Placeholder").as_str(), txt.as_str()).on_input(Message::RenameUpdate).size(SPECIAL_FONT_SIZE).id(self.rename_id.clone());
                 function_buttons.push(rename_input)
             }
             None => function_buttons.push(function_cap),

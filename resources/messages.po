@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-08-23 22:38+0000\n"
+"POT-Creation-Date: 2023-08-23 23:28+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,55 +17,94 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#. construct top bar
-#: src/main.rs:562
-msgid "Back"
+#: src/main.rs:563
+msgid "<Backspace>"
 msgstr ""
 
 #: src/main.rs:563
+msgid "<S>"
+msgstr ""
+
+#: src/main.rs:563
+msgid "<Shift+Minus>"
+msgstr ""
+
+#: src/main.rs:563 src/main.rs:563
+msgid "<M>"
+msgstr ""
+
+#: src/main.rs:563 src/main.rs:563
+msgid "<C>"
+msgstr ""
+
+#: src/main.rs:563
+msgid "<H>"
+msgstr ""
+
+#: src/main.rs:563
+msgid "<Shift+B>"
+msgstr ""
+
+#: src/main.rs:563
+msgid "<N>"
+msgstr ""
+
+#: src/main.rs:563
+msgid "<Shift+N>"
+msgstr ""
+
+#: src/main.rs:563
+msgid "<R>"
+msgstr ""
+
+#: src/main.rs:564
+msgid "Back"
+msgstr ""
+
+#: src/main.rs:564
 msgid "Sort"
 msgstr ""
 
-#: src/main.rs:565 src/main.rs:567
+#: src/main.rs:564
 msgid "Delete"
 msgstr ""
 
-#: src/main.rs:570
+#: src/main.rs:564
 msgid "Move Here"
 msgstr ""
 
-#: src/main.rs:571
+#: src/main.rs:564
 msgid "Move"
 msgstr ""
 
-#: src/main.rs:574
+#: src/main.rs:564
 msgid "Paste"
 msgstr ""
 
-#: src/main.rs:575
+#: src/main.rs:564
 msgid "Copy"
 msgstr ""
 
-#: src/main.rs:577
+#: src/main.rs:564
 msgid "Hidden"
 msgstr ""
 
-#: src/main.rs:578
+#: src/main.rs:564
 msgid "Bookmark"
 msgstr ""
 
-#: src/main.rs:579
-msgid " Make File "
+#: src/main.rs:564
+msgid "Make File"
 msgstr ""
 
-#: src/main.rs:580
-msgid " Make Folder "
+#: src/main.rs:564
+msgid "Make Folder"
 msgstr ""
 
-#: src/main.rs:582
+#: src/main.rs:564
 msgid "Rename"
 msgstr ""
 
-#: src/main.rs:586
+#: src/main.rs:591
 msgid "Placeholder"
 msgstr ""

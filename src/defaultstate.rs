@@ -2,6 +2,7 @@ use crate::Narwhal;
 use crate::confighelpers::get_theme_file;
 use crate::sort_file_by_type;
 use std::{env, fs};
+use cosmic_time::Timeline;
 use iced::widget::text_input;
 use toml;
 use crate::CacheFile;
@@ -53,6 +54,7 @@ impl Default for Narwhal {
             typemode: None,
             rename_id: text_input::Id::unique(),
             show_keybinds: false,
+            anims: Timeline::new(),
             themes: ThemeSet {
                 light: CustomTheme {
                     application: iced::theme::Palette {

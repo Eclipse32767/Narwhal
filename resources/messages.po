@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-08-23 23:38+0000\n"
+"POT-Creation-Date: 2023-08-24 22:24+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,94 +17,94 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.rs:563
+#: src/main.rs:570
 msgid "<Backspace>"
 msgstr ""
 
-#: src/main.rs:563
+#: src/main.rs:570
 msgid "<S>"
 msgstr ""
 
-#: src/main.rs:563
+#: src/main.rs:570
 msgid "<Shift+Minus>"
 msgstr ""
 
-#: src/main.rs:563 src/main.rs:563
+#: src/main.rs:570 src/main.rs:570
 msgid "<M>"
 msgstr ""
 
-#: src/main.rs:563 src/main.rs:563
+#: src/main.rs:570 src/main.rs:570
 msgid "<C>"
 msgstr ""
 
-#: src/main.rs:563
+#: src/main.rs:570
 msgid "<H>"
 msgstr ""
 
-#: src/main.rs:563
+#: src/main.rs:570
 msgid "<Shift+B>"
 msgstr ""
 
-#: src/main.rs:563
+#: src/main.rs:570
 msgid "<N>"
 msgstr ""
 
-#: src/main.rs:563
+#: src/main.rs:570
 msgid "<Shift+N>"
 msgstr ""
 
-#: src/main.rs:563
+#: src/main.rs:570
 msgid "<R>"
 msgstr ""
 
-#: src/main.rs:564
+#: src/main.rs:571
 msgid "Back"
 msgstr ""
 
-#: src/main.rs:564
+#: src/main.rs:571
 msgid "Sort"
 msgstr ""
 
-#: src/main.rs:564
+#: src/main.rs:571
 msgid "Delete"
 msgstr ""
 
-#: src/main.rs:564
+#: src/main.rs:571
 msgid "Move Here"
 msgstr ""
 
-#: src/main.rs:564
+#: src/main.rs:571
 msgid "Move"
 msgstr ""
 
-#: src/main.rs:564
+#: src/main.rs:571
 msgid "Paste"
 msgstr ""
 
-#: src/main.rs:564
+#: src/main.rs:571
 msgid "Copy"
 msgstr ""
 
-#: src/main.rs:564
+#: src/main.rs:571
 msgid "Hidden"
 msgstr ""
 
-#: src/main.rs:564
+#: src/main.rs:571
 msgid "Bookmark"
 msgstr ""
 
-#: src/main.rs:564
+#: src/main.rs:571
 msgid "Make File"
 msgstr ""
 
-#: src/main.rs:564
+#: src/main.rs:571
 msgid "Make Folder"
 msgstr ""
 
-#: src/main.rs:564
+#: src/main.rs:571
 msgid "Rename"
 msgstr ""
 
-#: src/main.rs:591
+#: src/main.rs:598
 msgid "Placeholder"
 msgstr ""

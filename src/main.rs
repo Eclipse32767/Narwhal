@@ -1,7 +1,7 @@
 #![deny(unsafe_code)]
 use iced::futures::executor::block_on;
 use iced::futures::future::join_all;
-use iced::{Application, Result, Settings, executor, Length};
+use iced::{Application, Result, Settings, executor, Length, Event};
 use iced::widget::{Button, Text, Row, Column, Container, Rule, text_input, TextInput};
 use iced::theme;
 use iced_style::Theme;
@@ -23,6 +23,7 @@ use uihelpers::*;
 mod uihelpers;
 mod kbparser;
 mod defaultstate;
+use cosmic_time::{Timeline, Instant};
 
 fn main() -> Result {
     let _ = textdomain("NarwhalFM");
@@ -63,6 +64,7 @@ struct Narwhal {//contains all application state
     typemode: Option<String>,
     rename_id: text_input::Id,
     show_keybinds: bool,
+    anims: Timeline,
 }
 
 #[derive(Debug, Clone)]
@@ -81,7 +83,8 @@ pub enum Message {//enum representing button events
     MkFile,
     MkDir,
     RenameToggle,
-    RenameUpdate(String)
+    RenameUpdate(String),
+    Tick(Instant),
 }
 fn get_file_type(metadata: Metadata) -> FileType {//collects the filetype from metadata
     if metadata.is_dir() {
@@ -551,6 +554,10 @@ impl Application for Narwhal {
                 self.typemode = Some(x);
                 iced::Command::none()
             }
+            Message::Tick(now) => {
+                self.anims.now(now);
+                iced::Command::none()
+            }
         }
     }
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {//render code!
@@ -630,17 +637,16 @@ impl Application for Narwhal {
         Container::new(row_test).width(Length::Fill).height(Length::Fill).into()
     }
     fn subscription(&self) -> iced::Subscription<Message> {//listen in on keyboard and window events
-        iced::subscription::events_with(
-            |event, _| {
-                if let iced::Event::Keyboard(keyboard_event) = event {
-                    Some(Message::KeyboardUpdate(keyboard_event))
-                } else if let iced::Event::Window(window_event) = event{
-                    Some(Message::WindowUpdate(window_event))
-                } else {
-                    None
+        iced::Subscription::batch(vec![
+            self.anims.as_subscription::<Event>().map(Message::Tick),
+            iced::subscription::events_with(
+                |event, _| match event {
+                    Event::Keyboard(evt) => Some(Message::KeyboardUpdate(evt)),
+                    Event::Window(evt) => Some(Message::WindowUpdate(evt)),
+                    _ => None
                 }
-            }
-        )
+            )
+        ])
     }
     fn theme(&self) -> Self::Theme {//send in the selected application theme
         match self.theme {

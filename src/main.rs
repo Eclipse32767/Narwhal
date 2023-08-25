@@ -23,7 +23,9 @@ use uihelpers::*;
 mod uihelpers;
 mod kbparser;
 mod defaultstate;
-use cosmic_time::{Timeline, Instant};
+use cosmic_time::{
+    self, anim, chain, id, Duration, Instant, once_cell::sync::Lazy, Timeline,
+};
 
 fn main() -> Result {
     let _ = textdomain("NarwhalFM");
@@ -44,6 +46,8 @@ const SIDEBAR_WIDTH: u16 = 120;
 const IMAGE_SCALE: u16 = 64;
 const RULE_WIDTH: u16 = 1;
 const TOP_HEIGHT: u16 = 30;
+
+static RENAMEBTN: Lazy<id::Button> = Lazy::new(id::Button::unique);
 
 struct Narwhal {//contains all application state
     files: Vec<DirEntry>,
@@ -85,6 +89,7 @@ pub enum Message {//enum representing button events
     RenameToggle,
     RenameUpdate(String),
     Tick(Instant),
+    NoOp,
 }
 fn get_file_type(metadata: Metadata) -> FileType {//collects the filetype from metadata
     if metadata.is_dir() {
@@ -361,8 +366,16 @@ impl Application for Narwhal {
     type Executor = executor::Default;
     type Flags = ();
     fn new(_flags: ()) -> (Self, iced::Command<Self::Message>) {//initialize program
+        let mut narwhal = Self::default();
+        use cosmic_time::button;
+        let unmitosis = chain![RENAMEBTN, 
+            button(Duration::ZERO).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+            button(Duration::from_millis(250)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+            button(Duration::from_millis(250)).width(Length::Fixed(500.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+        ];
+        narwhal.anims.set_chain(unmitosis).start();
         (
-            Self::default(),
+            narwhal,
             iced::Command::none()
         )
     }
@@ -542,9 +555,23 @@ impl Application for Narwhal {
                                 self.typemode = None
                             }
                         }
+                        use cosmic_time::button;
+                        let unmitosis = chain![RENAMEBTN, 
+                            button(Duration::ZERO).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                            button(Duration::from_millis(250)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                            button(Duration::from_millis(250)).width(Length::Fixed(500.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                        ];
+                        self.anims.set_chain(unmitosis).start();
                         iced::Command::none()
                     },
                     None => {
+                        use cosmic_time::button;
+                        let mitosis = chain![RENAMEBTN, 
+                            button(Duration::ZERO).width(Length::Fixed(500.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                            button(Duration::from_millis(250)).width(Length::Fixed(500.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                            button(Duration::from_millis(250)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                        ];
+                        self.anims.set_chain(mitosis).start();
                         self.typemode = Some(String::default());
                         text_input::focus(self.rename_id.clone())
                     }
@@ -556,6 +583,9 @@ impl Application for Narwhal {
             }
             Message::Tick(now) => {
                 self.anims.now(now);
+                iced::Command::none()
+            }
+            Message::NoOp => {
                 iced::Command::none()
             }
         }
@@ -590,16 +620,15 @@ impl Application for Narwhal {
         let bookmark_btn = string_button(translated[8].clone(), SPECIAL_FONT_SIZE).height(TOP_HEIGHT).on_press(Message::BookmarkCurrent).style(current_theme.secondary.mk_theme());
         let touch_btn = string_button(translated[9].clone(), SPECIAL_FONT_SIZE).width(SIDEBAR_WIDTH).on_press(Message::MkFile).style(current_theme.sidebar.mk_theme());
         let mkdir_btn = string_button(translated[10].clone(), SPECIAL_FONT_SIZE).width(SIDEBAR_WIDTH).on_press(Message::MkDir).style(current_theme.sidebar.mk_theme());
-        let function_cap = Button::new("").width(5000).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
-        let rename_btn = string_button(translated[11].clone(), SPECIAL_FONT_SIZE).height(TOP_HEIGHT).on_press(Message::RenameToggle).style(current_theme.secondary.mk_theme());
+        //let function_cap = Button::new("").width(5000).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
+        let rename_btn = anim!(RENAMEBTN, &self.anims, Text::new(translated[11].clone()).size(SPECIAL_FONT_SIZE)).height(Length::Fixed(TOP_HEIGHT as f32)).on_press(Message::RenameToggle).style(current_theme.secondary.mk_theme());
         let mut function_buttons = Row::new().push(back_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn).push(rename_btn);
-        function_buttons = match &self.typemode {
-            Some(txt) => {
-                let rename_input = TextInput::new(tr("Placeholder").as_str(), txt.as_str()).on_input(Message::RenameUpdate).size(SPECIAL_FONT_SIZE).id(self.rename_id.clone());
-                function_buttons.push(rename_input)
-            }
-            None => function_buttons.push(function_cap),
+        let txt = match &self.typemode {
+            Some(x) => x.clone(),
+            None => String::from("")
         };
+        let rename_input = TextInput::new(tr("Placeholder").as_str(), txt.as_str()).on_input(Message::RenameUpdate).size(SPECIAL_FONT_SIZE).id(self.rename_id.clone());
+        function_buttons = function_buttons.push(rename_input);
         //construct bookmark column
         let mut bookmark_buttons = Column::new().push(mkdir_btn).push(touch_btn);
         for i in 0..self.bookmarked_dirs.len() {
@@ -610,7 +639,7 @@ impl Application for Narwhal {
             let btn = Button::new(btn_text).on_press(Message::BookmarkClicked(i)).width(SIDEBAR_WIDTH).style(current_theme.sidebar.mk_theme());
             bookmark_buttons = bookmark_buttons.push(btn);
         }
-        let bookmark_cap = Button::new("").height(5000).width(SIDEBAR_WIDTH).style(current_theme.sidebar.mk_theme());
+        let bookmark_cap = Button::new("").height(5000).width(SIDEBAR_WIDTH).style(current_theme.sidebar.mk_theme()).on_press(Message::NoOp);
         bookmark_buttons = bookmark_buttons.push(bookmark_cap);
         //construct file view
         let mut file_listing = Column::new();

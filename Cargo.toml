@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cosmic-time = {git = "https://github.com/pop-os/cosmic-time.git"}
+cosmic-time = {git = "https://github.com/pop-os/cosmic-time.git", features = ["iced", "once_cell"]}
 env_logger = "0.10.0"
 freedesktop-icons = "0.2.3"
 gettext-rs = "0.7.0"

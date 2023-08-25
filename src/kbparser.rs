@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 
-use iced::{futures::executor::block_on, widget::text_input};
+use cosmic_time::{chain, Duration};
+use iced::{futures::executor::block_on, widget::text_input, Length};
 
-use crate::{Narwhal, confighelpers::BookmarkDir, sort_file_by_type};
+use crate::{Narwhal, confighelpers::BookmarkDir, sort_file_by_type, RENAMEBTN, TOP_HEIGHT};
 
 impl Narwhal {
     pub fn kbparse(&mut self, kb_event: iced::keyboard::Event) -> iced::Command<<Narwhal as iced::Application>::Message> {
@@ -13,6 +14,13 @@ impl Narwhal {
                     Some(val) => {
                         if key_code == iced::keyboard::KeyCode::Escape {
                             self.typemode = None;
+                            use cosmic_time::button;
+                            let unmitosis = chain![RENAMEBTN, 
+                                button(Duration::ZERO).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                                button(Duration::from_millis(250)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                                button(Duration::from_millis(250)).width(Length::Fixed(500.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                            ];
+                            self.anims.set_chain(unmitosis).start();
                         } else if key_code == iced::keyboard::KeyCode::Enter {
                             match  self.last_clicked_file {
                                 Some(..) => {
@@ -25,6 +33,13 @@ impl Narwhal {
                                     self.typemode = None;
                                 }
                             }
+                            use cosmic_time::button;
+                            let unmitosis = chain![RENAMEBTN, 
+                                button(Duration::ZERO).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                                button(Duration::from_millis(250)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                                button(Duration::from_millis(250)).width(Length::Fixed(500.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                            ];
+                            self.anims.set_chain(unmitosis).start();
                         }
                     },
                     None => {
@@ -267,6 +282,13 @@ impl Narwhal {
                     self.touch();
                 } else if key_code == iced::keyboard::KeyCode::R {//enter rename mode
                     self.typemode = Some(String::default());
+                    use cosmic_time::button;
+                    let mitosis = chain![RENAMEBTN, 
+                        button(Duration::ZERO).width(Length::Fixed(500.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                        button(Duration::from_millis(250)).width(Length::Fixed(500.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                        button(Duration::from_millis(250)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                    ];
+                    self.anims.set_chain(mitosis).start();
                     return_command = text_input::focus(self.rename_id.clone())
                 }
             }

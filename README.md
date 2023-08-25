@@ -10,4 +10,8 @@ Performance is king. If it causes stutters on a decade old laptop, I don't want 
 
 ## To Do
 
-Add a Text box to the bottom of the UI explaining the controls
+File Search -- use async
+Perhaps a way to edit mimetype associations?
+Add more animations, they look pretty
+xdg-open
+Maybe a way to determine the user's icon theme instead of using hardcoded strings?

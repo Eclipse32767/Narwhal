@@ -1,6 +1,7 @@
 use crate::Narwhal;
 use crate::confighelpers::get_theme_file;
 use crate::sort_file_by_type;
+use std::str::FromStr;
 use std::{env, fs};
 use cosmic_time::Timeline;
 use iced::widget::text_input;
@@ -34,7 +35,7 @@ impl Default for Narwhal {
         let config_text = fs::read_to_string(config_home);
         let config_struct: Config = match config_text {
             Ok(x) => toml::from_str(&x).unwrap(),
-            Err(..) => Config { sort_mode: "Folder".to_string(), show_hidden: false, bookmarks: vec![] }
+            Err(..) => Config { sort_mode: "Folder".to_string(), show_hidden: false, bookmarks: vec![], icntheme: String::from_str("Adwaita").unwrap(), icnsize: 32 }
         };
         let mut finalstruct = Narwhal {//build a struct with only config options injected
             files: vec![], 
@@ -55,6 +56,8 @@ impl Default for Narwhal {
             rename_id: text_input::Id::unique(),
             show_keybinds: false,
             anims: Timeline::new(),
+            icntheme: config_struct.icntheme.clone(),
+            icnsize: config_struct.icnsize,
             themes: ThemeSet {
                 light: CustomTheme {
                     application: iced::theme::Palette {

@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use freedesktop_icons::lookup;
 use xdg_utils::query_mime_info;
-const THEME: &str = "Adwaita";
 
 pub fn clean_bad_mime(mime: String) -> String {//attempt to sanitize a mimetype that could not be interpreted as an icon
     let substrings_type: Vec<&str> = mime.split("-").collect();
@@ -24,38 +23,38 @@ pub fn get_file_mimetype(path: String) -> String {//collect a mimetype
         Err(e) => panic!("{}", e)
     }
 }
-pub async fn get_file_icon(cache: HashMap<String, String>, path: String) -> (Option<HashMap<String, String>>, String) {//determine a valid mimetype for icons and return it, with cache support
+pub async fn get_file_icon(cache: HashMap<String, String>, path: String, theme: String, size: u16) -> (Option<HashMap<String, String>>, String) {//determine a valid mimetype for icons and return it, with cache support
     let icon_cache = cache.clone();
     let mut cache_changes: HashMap<String, String> = HashMap::new();
     let icon_out = icon_cache.get(&path);
     match icon_out {
-        Some(icon) => match lookup(icon).with_cache().with_size(32).with_theme(THEME).find() {
+        Some(icon) => match lookup(icon).with_cache().with_size(size).with_theme(&theme).find() {
             Some(x) => (None, x.to_string_lossy().to_string()),
             None => {
                 let newicon = clean_bad_mime(icon.to_string());
-                match lookup(&newicon).with_cache().with_size(32).with_theme(THEME).find() {
+                match lookup(&newicon).with_cache().with_size(size).with_theme(&theme).find() {
                     Some(x) => (None, x.to_string_lossy().to_string()),
                     None => (None, format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR")))
                 }
             }
         }
         None => {
-            let output = cacheless_get_file_icon(path.clone());
+            let output = cacheless_get_file_icon(path.clone(), theme.clone(), size);
             cache_changes.insert(path, output.clone());
-            (Some(cache_changes), lookup(&output).with_cache().with_size(32).with_theme(&THEME).find().unwrap().to_string_lossy().to_string())
+            (Some(cache_changes), lookup(&output).with_cache().with_size(size).with_theme(&theme).find().unwrap().to_string_lossy().to_string())
         }
     }
 }
-pub fn cacheless_get_file_icon(path: String) -> String {//determine a valid mimetype for icons and return it
+pub fn cacheless_get_file_icon(path: String, theme: String, size: u16) -> String {//determine a valid mimetype for icons and return it
     let mut mimetype = get_file_mimetype(path.clone()).replace("/", "-");
     if mimetype == "inode-directory" {
         String::from("folder")
     } else {
-        match lookup(&mimetype).with_cache().with_size(32).with_theme(&THEME).find() {
+        match lookup(&mimetype).with_cache().with_size(size).with_theme(&theme).find() {
             Some(..) => mimetype,
             None => {
                 mimetype = clean_bad_mime(mimetype);
-                match lookup(&mimetype).with_cache().with_size(32).with_theme(&THEME).find() {
+                match lookup(&mimetype).with_cache().with_size(size).with_theme(&theme).find() {
                     Some(..) => mimetype,
                     None => format!("text-x-generic")
                 }

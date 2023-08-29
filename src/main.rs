@@ -69,6 +69,8 @@ struct Narwhal {//contains all application state
     rename_id: text_input::Id,
     show_keybinds: bool,
     anims: Timeline,
+    icntheme: String,
+    icnsize: u16,
 }
 
 #[derive(Debug, Clone)]
@@ -164,7 +166,7 @@ impl Narwhal {
                     Some(value) => value == i,
                     None => false
                 };
-                futures.push(exec.spawn(get_file_icon(self.icon_cache.clone(), path.clone())));//spawn all file icon fetching futures
+                futures.push(exec.spawn(get_file_icon(self.icon_cache.clone(), path.clone(), self.icntheme.clone(), self.icnsize)));//spawn all file icon fetching futures
                 names.push(name);
                 selectedvals.push(selected);
                 originalindeces.push(i);
@@ -370,8 +372,8 @@ impl Application for Narwhal {
         use cosmic_time::button;
         let unmitosis = chain![RENAMEBTN, 
             button(Duration::ZERO).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
-            button(Duration::from_millis(250)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
-            button(Duration::from_millis(250)).width(Length::Fixed(500.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+            button(Duration::from_millis(500)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+            button(Duration::from_millis(500)).width(Length::Fixed(1000.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
         ];
         narwhal.anims.set_chain(unmitosis).start();
         (
@@ -468,7 +470,7 @@ impl Application for Narwhal {
                         let cached_contents = toml::to_string(&yes).unwrap();
                         let cache_home = format!("{}/NarwhalFM", get_cache_home());
                         fs::write(cache_home, cached_contents).unwrap();
-                        let config_file = Config { sort_mode: encode_sort(self.sorttype.clone()), show_hidden: self.show_hidden, bookmarks: self.bookmarked_dirs.clone() };
+                        let config_file = Config { sort_mode: encode_sort(self.sorttype.clone()), show_hidden: self.show_hidden, bookmarks: self.bookmarked_dirs.clone(), icntheme: self.icntheme.clone(), icnsize: self.icnsize };
                         let config_text = toml::to_string(&config_file).unwrap();
                         let config_home = format!("{}/Oceania/NarwhalFM.toml", get_config_home());
                         fs::write(config_home, config_text).unwrap();
@@ -558,8 +560,8 @@ impl Application for Narwhal {
                         use cosmic_time::button;
                         let unmitosis = chain![RENAMEBTN, 
                             button(Duration::ZERO).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
-                            button(Duration::from_millis(250)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
-                            button(Duration::from_millis(250)).width(Length::Fixed(500.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                            button(Duration::from_millis(500)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                            button(Duration::from_millis(500)).width(Length::Fixed(1000.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                         ];
                         self.anims.set_chain(unmitosis).start();
                         iced::Command::none()
@@ -567,9 +569,9 @@ impl Application for Narwhal {
                     None => {
                         use cosmic_time::button;
                         let mitosis = chain![RENAMEBTN, 
-                            button(Duration::ZERO).width(Length::Fixed(500.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
-                            button(Duration::from_millis(250)).width(Length::Fixed(500.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
-                            button(Duration::from_millis(250)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                            button(Duration::ZERO).width(Length::Fixed(1000.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                            button(Duration::from_millis(500)).width(Length::Fixed(1000.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                            button(Duration::from_millis(500)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                         ];
                         self.anims.set_chain(mitosis).start();
                         self.typemode = Some(String::default());

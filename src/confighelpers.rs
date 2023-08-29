@@ -124,7 +124,9 @@ pub struct BookmarkDir {//struct representation of a bookmarked location
 pub struct Config {//struct representation of a config file
     pub sort_mode: String,
     pub show_hidden: bool,
-    pub bookmarks: Vec<BookmarkDir>
+    pub bookmarks: Vec<BookmarkDir>,
+    pub icntheme: String,
+    pub icnsize: u16
 }
 #[derive(Serialize, Deserialize, Clone)]
 pub struct CacheFile {//struct representation of the cache file

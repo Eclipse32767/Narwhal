@@ -223,7 +223,7 @@ impl Narwhal {
                             self.regen_files();
                             sort_file_by_type(&mut self.files, self.sorttype.clone());
                         } else {
-                            Command::new("open").arg(path.to_string_lossy().to_string()).spawn().expect("oops");
+                            Command::new("xdg-open").arg(path.to_string_lossy().to_string()).spawn().expect("oops");
                         }
                     } else {
                         let mime = get_file_mimetype(self.files[x].path().to_string_lossy().to_string()).replace("/", "-");

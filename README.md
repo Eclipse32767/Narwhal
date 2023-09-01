@@ -17,3 +17,5 @@ Perhaps a way to edit mimetype associations?
 Add more animations, they look pretty
 
 add a Path Bar
+
+make file picker xdg portal

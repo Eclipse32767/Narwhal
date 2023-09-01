@@ -2,7 +2,7 @@
 use iced::futures::executor::block_on;
 use iced::futures::future::join_all;
 use iced::{Application, Result, Settings, executor, Length, Event};
-use iced::widget::{Button, Text, Row, Column, Container, Rule, text_input, TextInput};
+use iced::widget::{Button, Text, Row, Column, Container, Rule, text_input, TextInput, Space};
 use iced::theme;
 use iced_style::Theme;
 use std::collections::HashMap;
@@ -76,7 +76,7 @@ struct Narwhal {//contains all application state
 #[derive(Debug, Clone)]
 pub enum Message {//enum representing button events
     FileClicked(usize),
-    GoBack,
+    GoBack(usize),
     SortChanged,
     HiddenChanged,
     KeyboardUpdate(iced::keyboard::Event),
@@ -395,8 +395,10 @@ impl Application for Narwhal {
                 self.interact_selected_entry(x);
                 iced::Command::none()
             },
-            Message::GoBack => {//go back a directory
-                self.go_back_directory();
+            Message::GoBack(x) => {//go back a directory
+                for _i in 0..x {
+                    self.go_back_directory();
+                }
                 iced::Command::none()
             },
             Message::SortChanged => {//change sortmode
@@ -603,7 +605,7 @@ impl Application for Narwhal {
             false => [tr("Back"), tr("Sort"), tr("Delete"), tr("Move Here"), tr("Move"), tr("Paste"), tr("Copy"), tr("Hidden"), tr("Bookmark"), tr("Make File"), tr("Make Folder"), tr("Rename")]
         };
         // construct top bar
-        let back_btn = string_button(translated[0].clone(), SPECIAL_FONT_SIZE).on_press(Message::GoBack).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
+        let back_btn = string_button(translated[0].clone(), SPECIAL_FONT_SIZE).on_press(Message::GoBack(1)).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
         let sort_btn = string_button(translated[1].clone(), SPECIAL_FONT_SIZE).on_press(Message::SortChanged).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
         let delete_btn = if self.deletion_confirmation {
             string_button(translated[2].clone(), SPECIAL_FONT_SIZE).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(theme::Button::Destructive)
@@ -660,10 +662,32 @@ impl Application for Narwhal {
             temprow = temprow.push(full);
         }
         file_listing = file_listing.push(temprow);
+        let mut pathbar = Row::new();
+        let chars: Vec<char> = self.currentpath.to_string_lossy().to_string().chars().collect();
+        let mut pathentries = vec![];
+        let pathcap = Button::new("").height(TOP_HEIGHT).width(10000).style(current_theme.sidebar.mk_theme()).on_press(Message::NoOp);
+        let mut entries = 0;
+        for character in chars {
+            if character == '/' {
+                pathentries.push(String::default());
+                entries = pathentries.len() - 1;
+            } else {
+                pathentries[entries] = format!("{}{}", pathentries[entries], character);
+            }
+        }
+        let mut iterations = 0;
+        for entry in pathentries {
+            pathbar = pathbar.push(Button::new(Text::new("/")).on_press(Message::NoOp).style(current_theme.sidebar.mk_theme()).height(TOP_HEIGHT));
+            pathbar = pathbar.push(Button::new(Text::new(entry)).on_press(Message::GoBack(entries - iterations)).style(current_theme.sidebar.mk_theme()).height(TOP_HEIGHT));
+            iterations = iterations + 1;
+        }
+        pathbar = pathbar.push(pathcap);
         //return render commands
         let ruleh = Rule::horizontal(RULE_WIDTH);
+        let ruleh2 = Rule::horizontal(RULE_WIDTH);
+        let fillspace = Space::new(10, Length::Fill);
         let rulev = Rule::vertical(RULE_WIDTH);
-        let col_test = Column::new().push(function_buttons).push(ruleh).push(file_listing);
+        let col_test = Column::new().push(function_buttons).push(ruleh).push(file_listing).push(fillspace).push(ruleh2).push(pathbar);
         let row_test = Row::new().push(bookmark_buttons).push(rulev).push(col_test);
         Container::new(row_test).width(Length::Fill).height(Length::Fill).into()
     }

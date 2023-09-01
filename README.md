@@ -15,3 +15,5 @@ File Search -- use async
 Perhaps a way to edit mimetype associations?
 
 Add more animations, they look pretty
+
+add a Path Bar

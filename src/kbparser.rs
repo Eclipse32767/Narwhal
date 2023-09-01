@@ -44,7 +44,10 @@ impl Narwhal {
                     },
                     None => {
                 if key_code == iced::keyboard::KeyCode::Left {//move the cursor to the left, wrapping around if necessary
-                    let mut old_index = self.uifiles.len() - 1;
+                    let mut old_index = match self.uifiles.len() {
+                        0 => 0,
+                        _ => self.uifiles.len() - 1
+                    };
                     for i in 0..self.uifiles.len() {
                         match self.last_clicked_file {
                             Some(x) => {
@@ -56,7 +59,10 @@ impl Narwhal {
                             None => {},
                         }
                     }
-                    self.last_clicked_file = Some(self.uifiles[old_index].original_index);
+                    if self.uifiles.len() > 0 {
+                        let indx = self.uifiles[old_index].original_index;
+                        self.last_clicked_file = Some(indx);
+                    }
                     block_on(self.regen_uifiles());
                 } else if key_code == iced::keyboard::KeyCode::Right {//move the cursor to the right, wrapping if necessary
                     let mut old_index = 0;
@@ -71,7 +77,10 @@ impl Narwhal {
                             None => {},
                         }
                     }
-                    self.last_clicked_file = Some(self.uifiles[old_index].original_index);
+                    if self.uifiles.len()>0 {
+                    let indx = self.uifiles[old_index].original_index;
+                    self.last_clicked_file = Some(indx);
+                    }
                     block_on(self.regen_uifiles());
                 } else if key_code == iced::keyboard::KeyCode::Down {//move the cursor down, wrap if necessary
                     let mut old_index = None;
@@ -98,7 +107,10 @@ impl Narwhal {
                             Some(0)
                         }
                     };
-                    self.last_clicked_file = Some(self.uifiles[old_index.unwrap()].original_index);
+                    if self.uifiles.len()>0 {
+                        let indx = self.uifiles[old_index.unwrap()].original_index;
+                        self.last_clicked_file = Some(indx);
+                    }
                     block_on(self.regen_uifiles());
                 } else if key_code == iced::keyboard::KeyCode::Up {//move cursor up, wrap if necessary
                     let mut old_index = None;
@@ -135,7 +147,10 @@ impl Narwhal {
                             Some(0)
                         }
                     };
-                    self.last_clicked_file = Some(self.uifiles[old_index.unwrap()].original_index);
+                    if self.uifiles.len() > 0 {
+                        let indx = self.uifiles[old_index.unwrap()].original_index;
+                        self.last_clicked_file = Some(indx);
+                    }
                     block_on(self.regen_uifiles());
                 } else if key_code == iced::keyboard::KeyCode::Enter {//interact with hovered entry
                     match self.last_clicked_file {

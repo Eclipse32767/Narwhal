@@ -9,7 +9,7 @@ edition = "2021"
 cosmic-time = {git = "https://github.com/pop-os/cosmic-time.git", features = ["iced", "once_cell"]}
 env_logger = "0.10.0"
 freedesktop-icons = "0.2.3"
-gettext-rs = "0.7.0"
+gettext-rs = {version = "0.7.0", features = ["gettext-system"]}
 serde = "1.0.159"
 serde_derive = "1.0.159"
 toml = "0.7.3"

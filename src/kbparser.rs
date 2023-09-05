@@ -16,8 +16,8 @@ impl Narwhal {
                             self.typemode = None;
                             use cosmic_time::button;
                             let unmitosis = chain![RENAMEBTN, 
-                                button(Duration::ZERO).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
-                                button(Duration::from_millis(500)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                                button(Duration::ZERO).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                                button(Duration::from_millis(500)).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                                 button(Duration::from_millis(500)).width(Length::Fixed(1000.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                             ];
                             self.anims.set_chain(unmitosis).start();
@@ -35,8 +35,8 @@ impl Narwhal {
                             }
                             use cosmic_time::button;
                             let unmitosis = chain![RENAMEBTN, 
-                                button(Duration::ZERO).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
-                                button(Duration::from_millis(500)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                                button(Duration::ZERO).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                                button(Duration::from_millis(500)).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                                 button(Duration::from_millis(500)).width(Length::Fixed(1000.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                             ];
                             self.anims.set_chain(unmitosis).start();

@@ -58,6 +58,7 @@ impl Default for Narwhal {
             anims: Timeline::new(),
             icntheme: config_struct.icntheme.clone(),
             icnsize: config_struct.icnsize,
+            show_file_options: true,
             themes: ThemeSet {
                 light: CustomTheme {
                     application: iced::theme::Palette {

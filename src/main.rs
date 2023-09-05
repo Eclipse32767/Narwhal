@@ -48,6 +48,8 @@ const RULE_WIDTH: u16 = 1;
 const TOP_HEIGHT: u16 = 30;
 
 static RENAMEBTN: Lazy<id::Button> = Lazy::new(id::Button::unique);
+static MENUBTN: Lazy<id::Button> = Lazy::new(id::Button::unique);
+static MENUBTN_LONG: Lazy<id::Button> = Lazy::new(id::Button::unique);
 
 struct Narwhal {//contains all application state
     files: Vec<DirEntry>,
@@ -71,6 +73,7 @@ struct Narwhal {//contains all application state
     anims: Timeline,
     icntheme: String,
     icnsize: u16,
+    show_file_options: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -91,6 +94,7 @@ pub enum Message {//enum representing button events
     RenameToggle,
     RenameUpdate(String),
     Tick(Instant),
+    ToggleMenu,
     NoOp,
 }
 fn get_file_type(metadata: Metadata) -> FileType {//collects the filetype from metadata
@@ -371,7 +375,7 @@ impl Application for Narwhal {
         let mut narwhal = Self::default();
         use cosmic_time::button;
         let unmitosis = chain![RENAMEBTN, 
-            button(Duration::ZERO).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+            button(Duration::ZERO).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
             button(Duration::from_millis(500)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
             button(Duration::from_millis(500)).width(Length::Fixed(1000.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
         ];
@@ -561,8 +565,8 @@ impl Application for Narwhal {
                         }
                         use cosmic_time::button;
                         let unmitosis = chain![RENAMEBTN, 
-                            button(Duration::ZERO).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
-                            button(Duration::from_millis(500)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                            button(Duration::ZERO).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                            button(Duration::from_millis(500)).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                             button(Duration::from_millis(500)).width(Length::Fixed(1000.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                         ];
                         self.anims.set_chain(unmitosis).start();
@@ -573,7 +577,7 @@ impl Application for Narwhal {
                         let mitosis = chain![RENAMEBTN, 
                             button(Duration::ZERO).width(Length::Fixed(1000.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                             button(Duration::from_millis(500)).width(Length::Fixed(1000.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
-                            button(Duration::from_millis(500)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                            button(Duration::from_millis(500)).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                         ];
                         self.anims.set_chain(mitosis).start();
                         self.typemode = Some(String::default());
@@ -592,6 +596,32 @@ impl Application for Narwhal {
             Message::NoOp => {
                 iced::Command::none()
             }
+            Message::ToggleMenu => {
+                use cosmic_time::button;
+                self.show_file_options = !self.show_file_options;
+                let grow_options = chain![MENUBTN,
+                    button(Duration::ZERO).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                    button(Duration::from_millis(500)).width(Length::Fixed(50.0)).height(Length::Fixed(TOP_HEIGHT as f32))
+                ];
+                let shrink_options = chain![MENUBTN,
+                    button(Duration::ZERO).width(Length::Fixed(50.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                    button(Duration::from_millis(500)).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32))
+                ];
+                let grow_options_long = chain![MENUBTN_LONG,
+                    button(Duration::ZERO).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                    button(Duration::from_millis(500)).width(Length::Fixed(80.0)).height(Length::Fixed(TOP_HEIGHT as f32))
+                ];
+                let shrink_options_long = chain![MENUBTN_LONG,
+                    button(Duration::ZERO).width(Length::Fixed(80.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                    button(Duration::from_millis(500)).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32))
+                ];
+                match self.show_file_options {
+                    true => self.anims.set_chain(grow_options).set_chain(grow_options_long),
+                    false => self.anims.set_chain(shrink_options).set_chain(shrink_options_long)
+                };
+                self.anims.start();
+                iced::Command::none()
+            }
         }
     }
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {//render code!
@@ -605,28 +635,30 @@ impl Application for Narwhal {
             false => [tr("Back"), tr("Sort"), tr("Delete"), tr("Move Here"), tr("Move"), tr("Paste"), tr("Copy"), tr("Hidden"), tr("Bookmark"), tr("Make File"), tr("Make Folder"), tr("Rename")]
         };
         // construct top bar
+        let option_btn = Button::new("...").height(TOP_HEIGHT).on_press(Message::ToggleMenu).style(current_theme.secondary.mk_theme());
         let back_btn = string_button(translated[0].clone(), SPECIAL_FONT_SIZE).on_press(Message::GoBack(1)).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
-        let sort_btn = string_button(translated[1].clone(), SPECIAL_FONT_SIZE).on_press(Message::SortChanged).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
+        let sort_btn = anim!(MENUBTN, &self.anims, Text::new(translated[1].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::SortChanged).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
         let delete_btn = if self.deletion_confirmation {
-            string_button(translated[2].clone(), SPECIAL_FONT_SIZE).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(theme::Button::Destructive)
+            anim!(MENUBTN_LONG, &self.anims, Text::new(translated[2].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(theme::Button::Destructive)
         } else {
-            string_button(translated[2].clone(), SPECIAL_FONT_SIZE).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
+            anim!(MENUBTN_LONG, &self.anims, Text::new(translated[2].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
         let mv_btn = match self.mv_target {
-            Some(..) => string_button(translated[3].clone(), SPECIAL_FONT_SIZE).on_press(Message::MvClicked),
-            None => string_button(translated[4].clone(), SPECIAL_FONT_SIZE).on_press(Message::MvClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
+            Some(..) => anim!(MENUBTN, &self.anims, Text::new(translated[3].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::MvClicked),
+            None => anim!(MENUBTN, &self.anims, Text::new(translated[4].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::MvClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
         let cp_btn = match self.cp_target {
-            Some(..) => string_button(translated[5].clone(), SPECIAL_FONT_SIZE).on_press(Message::CpClicked),
-            None => string_button(translated[6].clone(), SPECIAL_FONT_SIZE).on_press(Message::CpClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
+            Some(..) => anim!(MENUBTN, &self.anims, Text::new(translated[5].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::CpClicked),
+            None => anim!(MENUBTN, &self.anims, Text::new(translated[6].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::CpClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
-        let hidden_btn = string_button(translated[7].clone(), SPECIAL_FONT_SIZE).height(TOP_HEIGHT).on_press(Message::HiddenChanged).style(current_theme.secondary.mk_theme());
-        let bookmark_btn = string_button(translated[8].clone(), SPECIAL_FONT_SIZE).height(TOP_HEIGHT).on_press(Message::BookmarkCurrent).style(current_theme.secondary.mk_theme());
-        let touch_btn = string_button(translated[9].clone(), SPECIAL_FONT_SIZE).width(SIDEBAR_WIDTH).on_press(Message::MkFile).style(current_theme.sidebar.mk_theme());
-        let mkdir_btn = string_button(translated[10].clone(), SPECIAL_FONT_SIZE).width(SIDEBAR_WIDTH).on_press(Message::MkDir).style(current_theme.sidebar.mk_theme());
+        let hidden_btn = anim!(MENUBTN_LONG, &self.anims, Text::new(translated[7].clone()).size(SPECIAL_FONT_SIZE)).height(TOP_HEIGHT).on_press(Message::HiddenChanged).style(current_theme.secondary.mk_theme());
+        let bookmark_btn = anim!(MENUBTN_LONG, &self.anims, Text::new(translated[8].clone()).size(SPECIAL_FONT_SIZE)).height(TOP_HEIGHT).on_press(Message::BookmarkCurrent).style(current_theme.secondary.mk_theme());
+        let touch_btn = anim!(MENUBTN, &self.anims, Text::new(translated[9].clone()).size(SPECIAL_FONT_SIZE)).width(SIDEBAR_WIDTH).on_press(Message::MkFile).style(current_theme.sidebar.mk_theme());
+        let mkdir_btn = anim!(MENUBTN, &self.anims, Text::new(translated[10].clone()).size(SPECIAL_FONT_SIZE)).width(SIDEBAR_WIDTH).on_press(Message::MkDir).style(current_theme.sidebar.mk_theme());
         //let function_cap = Button::new("").width(5000).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
-        let rename_btn = anim!(RENAMEBTN, &self.anims, Text::new(translated[11].clone()).size(SPECIAL_FONT_SIZE)).height(Length::Fixed(TOP_HEIGHT as f32)).on_press(Message::RenameToggle).style(current_theme.secondary.mk_theme());
-        let mut function_buttons = Row::new().push(back_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn).push(rename_btn);
+        let rename_btn = string_button(translated[11].clone(), SPECIAL_FONT_SIZE).height(Length::Fixed(TOP_HEIGHT as f32)).on_press(Message::RenameToggle).style(current_theme.secondary.mk_theme());
+        let function_cap = anim!(RENAMEBTN, &self.anims, "").height(TOP_HEIGHT).on_press(Message::NoOp).style(current_theme.secondary.mk_theme());
+        let mut function_buttons = Row::new().push(back_btn).push(option_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn).push(rename_btn).push(function_cap);
         let txt = match &self.typemode {
             Some(x) => x.clone(),
             None => String::from("")

@@ -25,6 +25,7 @@ features=["svg", "tokio"]
 
 [dependencies.iced_aw]
 version="0.6.0"
+features=["icons"]
 
 [dependencies.iced_style]
 version="0.9.0"

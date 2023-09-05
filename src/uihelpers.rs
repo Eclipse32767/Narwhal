@@ -30,7 +30,6 @@ pub fn localized_button<'a>(msgid: &str, fontsize: u16) -> Button<'a, Message> {
     Button::new(Text::new(gettext(msgid)).size(fontsize))
 }
 */
-
 pub fn string_button<'a>(msg: String, fontsize: u16)-> Button<'a, Message> {
     Button::new(Text::new(msg).size(fontsize))
 }

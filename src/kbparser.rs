@@ -301,7 +301,7 @@ impl Narwhal {
                     let mitosis = chain![RENAMEBTN, 
                         button(Duration::ZERO).width(Length::Fixed(1000.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                         button(Duration::from_millis(500)).width(Length::Fixed(1000.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
-                        button(Duration::from_millis(500)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
+                        button(Duration::from_millis(500)).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                     ];
                     self.anims.set_chain(mitosis).start();
                     return_command = text_input::focus(self.rename_id.clone())

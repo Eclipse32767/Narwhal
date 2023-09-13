@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Narwhal File Manager
+Exec=narwhal
+Terminal=false
+Type=Application
+Icon=system-file-manager
+StartupWMClass=Narwhal-File-Manager
+Comment=Oceania's own file manager
+Categories=System;FileTools;FileManager;

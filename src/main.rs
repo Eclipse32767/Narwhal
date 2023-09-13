@@ -239,7 +239,7 @@ impl Narwhal {
                             sort_file_by_type(&mut self.files, self.sorttype.clone());
                         } else {
                             let filename = self.files[x].path().display().to_string();
-                            Command::new("open").arg(filename).spawn().expect("oops");
+                            Command::new("xdg-open").arg(filename).spawn().expect("oops");
                         }
                     }
                     self.last_clicked_file = None;

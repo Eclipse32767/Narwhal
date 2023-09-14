@@ -15,7 +15,7 @@ pub struct ButtonStyle {//struct representation of a button theme
     pub shadow_offset: iced::Vector,
 }
 
-impl button::StyleSheet for ButtonStyle {//makes the buttonstyle struct follow the stylesheet API
+impl button::StyleSheet for ButtonStyle {//makes the button_style struct follow the stylesheet API
     type Style = Theme;
     fn active(&self, _style: &Self::Style) -> button::Appearance {
         button::Appearance { 
@@ -41,28 +41,28 @@ pub struct ThemeSet {//a full pack of themes
 
 #[derive(Clone)]
 pub struct CustomTheme {//a single theme
-    pub application: iced::theme::Palette,
+    pub application: theme::Palette,
     pub secondary: ButtonStyle,
     pub sidebar: ButtonStyle,
 }
 
 impl ButtonStyle {//helper function to make button styles easy
     pub fn mk_theme(&self) -> theme::Button {
-        theme::Button::Custom(std::boxed::Box::new(self.clone()))
+        theme::Button::Custom(Box::new(self.clone()))
     }
 }
-pub fn mk_app_theme(palette: iced::theme::Palette) -> iced::Theme {//helper fn to make app styles easy
-    Theme::Custom(std::boxed::Box::new(iced::theme::Custom::new(palette)))
+pub fn mk_app_theme(palette: theme::Palette) -> Theme {//helper fn to make app styles easy
+    Theme::Custom(Box::new(theme::Custom::new(palette)))
 }
 
 pub fn col_from_string(string: String) -> Color {//convert a string to a color
     let chars: Vec<char> = string.chars().into_iter().collect();
-    let redstr = format!("{}{}", chars[0], chars[1]);
-    let greenstr = format!("{}{}", chars[2], chars[3]);
-    let bluestr = format!("{}{}", chars[4], chars[5]);
-    let red = u8::from_str_radix(&redstr, 16).unwrap();
-    let green = u8::from_str_radix(&greenstr, 16).unwrap();
-    let blue = u8::from_str_radix(&bluestr, 16).unwrap();
+    let red_str = format!("{}{}", chars[0], chars[1]);
+    let green_str = format!("{}{}", chars[2], chars[3]);
+    let blue_str = format!("{}{}", chars[4], chars[5]);
+    let red = u8::from_str_radix(&red_str, 16).unwrap();
+    let green = u8::from_str_radix(&green_str, 16).unwrap();
+    let blue = u8::from_str_radix(&blue_str, 16).unwrap();
     Color::from_rgb8(red, green, blue)
 }
 

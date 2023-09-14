@@ -26,8 +26,8 @@ impl UIFile {
     }
 }
 /* 
-pub fn localized_button<'a>(msgid: &str, fontsize: u16) -> Button<'a, Message> {//create a button from gettext output with the fontsize indicated
-    Button::new(Text::new(gettext(msgid)).size(fontsize))
+pub fn localized_button<'a>(msg_id: &str, fontsize: u16) -> Button<'a, Message> {//create a button from gettext output with the fontsize indicated
+    Button::new(Text::new(gettext(msg_id)).size(fontsize))
 }
 */
 pub fn string_button<'a>(msg: String, fontsize: u16)-> Button<'a, Message> {

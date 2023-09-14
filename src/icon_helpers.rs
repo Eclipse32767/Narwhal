@@ -31,8 +31,8 @@ pub async fn get_file_icon(cache: HashMap<String, String>, path: String, theme: 
         Some(icon) => match lookup(icon).with_cache().with_size(size).with_theme(&theme).find() {
             Some(x) => (None, x.to_string_lossy().to_string()),
             None => {
-                let newicon = clean_bad_mime(icon.to_string());
-                match lookup(&newicon).with_cache().with_size(size).with_theme(&theme).find() {
+                let new_icon = clean_bad_mime(icon.to_string());
+                match lookup(&new_icon).with_cache().with_size(size).with_theme(&theme).find() {
                     Some(x) => (None, x.to_string_lossy().to_string()),
                     None => (None, format!("{}/resources/text-rust.svg", env!("CARGO_MANIFEST_DIR")))
                 }

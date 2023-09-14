@@ -1,5 +1,5 @@
 use crate::Narwhal;
-use crate::confighelpers::get_theme_file;
+use crate::config_helpers::get_theme_file;
 use crate::sort_file_by_type;
 use std::str::FromStr;
 use std::{env, fs};
@@ -25,7 +25,7 @@ impl Default for Narwhal {
             Ok(x) => x,
             Err(x) => panic!("{}", x)
         };
-        let cache_home = format!("{}/NarwhalFM", get_cache_home());//collect the cache from the cachefile
+        let cache_home = format!("{}/NarwhalFM", get_cache_home());//collect the cache from the cache file
         let cache_text = fs::read_to_string(cache_home);
         let cache_struct: CacheFile = match cache_text {
             Ok(x) => toml::from_str(&x).unwrap(),
@@ -35,29 +35,29 @@ impl Default for Narwhal {
         let config_text = fs::read_to_string(config_home);
         let config_struct: Config = match config_text {
             Ok(x) => toml::from_str(&x).unwrap(),
-            Err(..) => Config { sort_mode: "Folder".to_string(), show_hidden: false, bookmarks: vec![], icntheme: String::from_str("Adwaita").unwrap(), icnsize: 32 }
+            Err(..) => Config { sort_mode: "Folder".to_string(), show_hidden: false, bookmarks: vec![], icn_theme: String::from_str("Adwaita").unwrap(), icn_size: 32 }
         };
-        let mut finalstruct = Narwhal {//build a struct with only config options injected
+        let mut final_struct = Narwhal {//build a struct with only config options injected
             files: vec![], 
-            currentpath: current_dir, 
-            sorttype: decode_sort(config_struct.sort_mode), 
+            current_path: current_dir,
+            sort_type: decode_sort(config_struct.sort_mode),
             desired_cols: 5, 
             show_hidden: config_struct.show_hidden, 
             desired_rows: 5, 
             last_clicked_file: None, 
-            uifiles: vec![], 
+            ui_files: vec![],
             icon_cache: cache_struct.contents.clone(), 
             bookmarked_dirs: config_struct.bookmarks.clone(), 
             deletion_confirmation: false, 
             mv_target: None, 
             cp_target: None,
             theme: get_set_theme(),
-            typemode: None,
+            type_mode: None,
             rename_id: text_input::Id::unique(),
             show_keybinds: false,
             anims: Timeline::new(),
-            icntheme: config_struct.icntheme.clone(),
-            icnsize: config_struct.icnsize,
+            icn_theme: config_struct.icn_theme.clone(),
+            icn_size: config_struct.icn_size,
             show_file_options: true,
             themes: ThemeSet {
                 light: CustomTheme {
@@ -113,9 +113,9 @@ impl Default for Narwhal {
                 custom: get_theme_file()
             }
         };
-        finalstruct.regen_files();//generate filelist
-        sort_file_by_type(&mut finalstruct.files, finalstruct.sorttype.clone());//sort filelist
-        block_on(finalstruct.regen_uifiles());//regenerate uifiles
-        finalstruct
+        final_struct.regen_files();//generate file list
+        sort_file_by_type(&mut final_struct.files, final_struct.sort_type.clone());//sort file list
+        block_on(final_struct.regen_ui_files());//regenerate ui files
+        final_struct
     }
 }

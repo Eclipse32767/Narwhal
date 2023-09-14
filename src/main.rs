@@ -13,16 +13,16 @@ use std::process::Command;
 use toml;
 use gettextrs::*;
 use gettextrs::gettext as tr;
-use libstyle::{ThemeSet, CustomTheme, ButtonStyle, ThemeFile, mk_app_theme, col_from_string};
-mod libstyle;
-use iconhelpers::{get_file_icon, get_file_mimetype};
-mod iconhelpers;
-use confighelpers::*;
-mod confighelpers;
-use uihelpers::*;
-mod uihelpers;
-mod kbparser;
-mod defaultstate;
+use lib_style::{ThemeSet, CustomTheme, ButtonStyle, ThemeFile, mk_app_theme, col_from_string};
+mod lib_style;
+use icon_helpers::{get_file_icon, get_file_mimetype};
+mod icon_helpers;
+use config_helpers::*;
+mod config_helpers;
+use ui_helpers::*;
+mod ui_helpers;
+mod kb_parser;
+mod default_state;
 use cosmic_time::{
     self, anim, chain, id, Duration, Instant, once_cell::sync::Lazy, Timeline,
 };
@@ -47,19 +47,19 @@ const IMAGE_SCALE: u16 = 64;
 const RULE_WIDTH: u16 = 1;
 const TOP_HEIGHT: u16 = 30;
 
-static RENAMEBTN: Lazy<id::Button> = Lazy::new(id::Button::unique);
-static MENUBTN: Lazy<id::Button> = Lazy::new(id::Button::unique);
-static MENUBTN_LONG: Lazy<id::Button> = Lazy::new(id::Button::unique);
+static RENAME_BTN: Lazy<id::Button> = Lazy::new(id::Button::unique);
+static MENU_BTN: Lazy<id::Button> = Lazy::new(id::Button::unique);
+static MENU_BTN_LONG: Lazy<id::Button> = Lazy::new(id::Button::unique);
 
 struct Narwhal {//contains all application state
     files: Vec<DirEntry>,
-    currentpath: PathBuf,
-    sorttype: SortType,
+    current_path: PathBuf,
+    sort_type: SortType,
     desired_cols: u32,
     desired_rows: u32,
     show_hidden: bool,
     last_clicked_file: Option<usize>,
-    uifiles: Vec<UIFile>,
+    ui_files: Vec<UIFile>,
     icon_cache: HashMap<String, String>,
     bookmarked_dirs: Vec<BookmarkDir>,
     deletion_confirmation: bool,
@@ -67,12 +67,12 @@ struct Narwhal {//contains all application state
     cp_target: Option<String>,
     themes: ThemeSet,
     theme: ThemeType,
-    typemode: Option<String>,
+    type_mode: Option<String>,
     rename_id: text_input::Id,
     show_keybinds: bool,
     anims: Timeline,
-    icntheme: String,
-    icnsize: u16,
+    icn_theme: String,
+    icn_size: u16,
     show_file_options: bool,
 }
 
@@ -109,20 +109,20 @@ fn get_file_type(metadata: Metadata) -> FileType {//collects the filetype from m
     }
 }
 fn clip_file_name(name: String) -> String {//shorten the file name
-    let usename: Vec<char> = name.clone().chars().collect();
-    let mut newvec: Vec<char> = vec![];
+    let use_name: Vec<char> = name.clone().chars().collect();
+    let mut new_vec: Vec<char> = vec![];
     let len = MAX_LENGTH;
     if name.chars().count() > len {
         for i in 0..len {
-            newvec.push(usename[i]);
+            new_vec.push(use_name[i]);
         }
-        let newstr = newvec.into_iter().collect::<String>();
-        format!("{newstr}...")
+        let new_str = new_vec.into_iter().collect::<String>();
+        format!("{new_str}...")
     } else {
         name
     }  
 }
-fn foldercmp(a: &DirEntry, b: &DirEntry, folders_first: bool) -> std::cmp::Ordering {//compare folders, returning an ordering
+fn folder_cmp(a: &DirEntry, b: &DirEntry, folders_first: bool) -> std::cmp::Ordering {//compare folders, returning an ordering
     let a_metadata = a.metadata().unwrap();
     let b_metadata = b.metadata().unwrap();
     let a_type = get_file_type(a_metadata);
@@ -147,16 +147,16 @@ fn foldercmp(a: &DirEntry, b: &DirEntry, folders_first: bool) -> std::cmp::Order
 }
 
 impl Narwhal {
-    async fn regen_uifiles(&mut self) {
+    async fn regen_ui_files(&mut self) {
         let mut items_flushed = 0;
         let max_iter = self.desired_cols * self.desired_rows;
         let mut futures = Vec::with_capacity(max_iter as usize);
         let mut names = Vec::with_capacity(max_iter as usize);
-        let mut selectedvals = Vec::with_capacity(max_iter as usize);
-        let mut originalindeces = Vec::with_capacity(max_iter as usize);
+        let mut selected_vals = Vec::with_capacity(max_iter as usize);
+        let mut original_indexes = Vec::with_capacity(max_iter as usize);
         let mut all_changes = vec![];
         let exec = iced::executor::Default::new().unwrap();
-        self.uifiles = Vec::with_capacity(max_iter as usize);
+        self.ui_files = Vec::with_capacity(max_iter as usize);
         for i in 0..self.files.len() {
             if items_flushed >= max_iter {
                 break;
@@ -170,10 +170,10 @@ impl Narwhal {
                     Some(value) => value == i,
                     None => false
                 };
-                futures.push(exec.spawn(get_file_icon(self.icon_cache.clone(), path.clone(), self.icntheme.clone(), self.icnsize)));//spawn all file icon fetching futures
+                futures.push(exec.spawn(get_file_icon(self.icon_cache.clone(), path.clone(), self.icn_theme.clone(), self.icn_size)));//spawn all file icon fetching futures
                 names.push(name);
-                selectedvals.push(selected);
-                originalindeces.push(i);
+                selected_vals.push(selected);
+                original_indexes.push(i);
                 items_flushed = items_flushed + 1;
             }
         }
@@ -188,17 +188,17 @@ impl Narwhal {
 
                 }
             }
-            let uifile = UIFile { name: names[i].clone(), original_index: originalindeces[i], selected: selectedvals[i], icon: icon };//construct the UIFile and push it onto the vec
-            self.uifiles.push(uifile);
+            let ui_file = UIFile { name: names[i].clone(), original_index: original_indexes[i], selected: selected_vals[i], icon };//construct the UIFile and push it onto the vec
+            self.ui_files.push(ui_file);
         }
         for change in all_changes {//for every change, push it onto the cache
             self.icon_cache.extend(change.into_iter());
         }
-        self.typemode = None;
+        self.type_mode = None;
     }
-    fn regen_files(&mut self) {//rebuild filelist
+    fn regen_files(&mut self) {//rebuild file list
         self.files = vec![];
-        let read_output = match fs::read_dir(self.currentpath.clone()) {
+        let read_output = match fs::read_dir(self.current_path.clone()) {
             Ok(x) => x,
             Err(x) => panic!("{}", x),
         };
@@ -215,17 +215,17 @@ impl Narwhal {
                         let mime = get_file_mimetype(self.files[x].path().to_string_lossy().to_string()).replace("/", "-");
                         let path = fs::read_link(self.files[x].path().to_string_lossy().to_string()).unwrap();
                         if mime == "inode-directory" {
-                            let pathtxt = path.to_string_lossy().to_string();
-                            let pathchars: Vec<char> = pathtxt.chars().collect();
-                            let cleanpath = if pathchars[0] == '/' {
-                                pathtxt
+                            let path_txt = path.to_string_lossy().to_string();
+                            let path_chars: Vec<char> = path_txt.chars().collect();
+                            let clean_path = if path_chars[0] == '/' {
+                                path_txt
                             } else {
-                                format!("/{}", pathtxt)
+                                format!("/{}", path_txt)
                             };
-                            self.currentpath = PathBuf::from(cleanpath);
-                            println!("{}", self.currentpath.to_string_lossy());
+                            self.current_path = PathBuf::from(clean_path);
+                            println!("{}", self.current_path.to_string_lossy());
                             self.regen_files();
-                            sort_file_by_type(&mut self.files, self.sorttype.clone());
+                            sort_file_by_type(&mut self.files, self.sort_type.clone());
                         } else {
                             Command::new("xdg-open").arg(path.to_string_lossy().to_string()).spawn().expect("oops");
                         }
@@ -233,10 +233,10 @@ impl Narwhal {
                         let mime = get_file_mimetype(self.files[x].path().to_string_lossy().to_string()).replace("/", "-");
                         if mime == "inode-directory" {
                             let filename = self.files[x].path().display().to_string();
-                            self.currentpath.push(filename);
-                            println!("{}", self.currentpath.to_string_lossy());
+                            self.current_path.push(filename);
+                            println!("{}", self.current_path.to_string_lossy());
                             self.regen_files();
-                            sort_file_by_type(&mut self.files, self.sorttype.clone());
+                            sort_file_by_type(&mut self.files, self.sort_type.clone());
                         } else {
                             let filename = self.files[x].path().display().to_string();
                             Command::new("xdg-open").arg(filename).spawn().expect("oops");
@@ -246,40 +246,40 @@ impl Narwhal {
                 } else {
                     self.last_clicked_file = Some(index);
                 }
-                block_on(self.regen_uifiles());
+                block_on(self.regen_ui_files());
             }
             None => {
                 self.last_clicked_file = Some(index);
-                block_on(self.regen_uifiles());
+                block_on(self.regen_ui_files());
             }
         }
     }
-    fn go_back_directory(&mut self) {//pop an entry off of the current path, regenerate the filelist and UIFiles
-        self.currentpath.pop();
+    fn go_back_directory(&mut self) {//pop an entry off of the current path, regenerate the file list and UI Files
+        self.current_path.pop();
         self.regen_files();
-        sort_file_by_type(&mut self.files, self.sorttype.clone());
+        sort_file_by_type(&mut self.files, self.sort_type.clone());
         self.last_clicked_file = None;
-        block_on(self.regen_uifiles());
+        block_on(self.regen_ui_files());
     }
     fn change_sort(&mut self, reverse: bool) {//cycle through sort modes
         if reverse {
-            self.sorttype = match self.sorttype {
+            self.sort_type = match self.sort_type {
                 SortType::Alphabetical => SortType::Files,
                 SortType::Reverse => SortType::Alphabetical,
                 SortType::Folders => SortType::Reverse,
                 SortType::Files => SortType::Folders,
             };
         } else {
-            self.sorttype = match self.sorttype {
+            self.sort_type = match self.sort_type {
                 SortType::Alphabetical => SortType::Reverse,
                 SortType::Reverse => SortType::Folders,
                 SortType::Folders => SortType::Files,
                 SortType::Files => SortType::Alphabetical,
             }; 
         }
-        sort_file_by_type(&mut self.files, self.sorttype.clone());
+        sort_file_by_type(&mut self.files, self.sort_type.clone());
         self.last_clicked_file = None;
-        block_on(self.regen_uifiles());
+        block_on(self.regen_ui_files());
     }
     fn rm_file(&mut self, index: usize) {//remove a file, this function contains less sanity checks and should be used carefully
         let path = self.files[index].path().to_string_lossy().to_string();
@@ -299,54 +299,54 @@ impl Narwhal {
             }
         }
         self.regen_files();
-        sort_file_by_type(&mut self.files, self.sorttype.clone());
+        sort_file_by_type(&mut self.files, self.sort_type.clone());
         self.last_clicked_file = None;
-        block_on(self.regen_uifiles());
+        block_on(self.regen_ui_files());
     }
     fn mv_file(&mut self) {//move a file to another location, no sanity checks
         let target = self.mv_target.clone().unwrap();
-        let path = self.currentpath.to_string_lossy().to_string();
+        let path = self.current_path.to_string_lossy().to_string();
         Command::new("mv").arg(target).arg(path).output().unwrap();
         self.mv_target = None;
         self.regen_files();
-        sort_file_by_type(&mut self.files, self.sorttype.clone());
+        sort_file_by_type(&mut self.files, self.sort_type.clone());
         self.last_clicked_file = None;
-        block_on(self.regen_uifiles());
+        block_on(self.regen_ui_files());
     }
     fn cp_file(&mut self) {//copy a file to another location, no sanity checks
         let target = self.cp_target.clone().unwrap();
-        let path = self.currentpath.to_string_lossy().to_string();
+        let path = self.current_path.to_string_lossy().to_string();
         Command::new("cp").arg(target).arg(path).output().unwrap();
         self.cp_target = None;
         self.regen_files();
-        sort_file_by_type(&mut self.files, self.sorttype.clone());
+        sort_file_by_type(&mut self.files, self.sort_type.clone());
         self.last_clicked_file = None;
-        block_on(self.regen_uifiles());
+        block_on(self.regen_ui_files());
     }
     fn touch(&mut self) {
-        let path = format!("{}/NewFile", self.currentpath.to_string_lossy().to_string());
+        let path = format!("{}/NewFile", self.current_path.to_string_lossy().to_string());
         Command::new("touch").arg(path).output().unwrap();
         self.regen_files();
-        sort_file_by_type(&mut self.files, self.sorttype.clone());
+        sort_file_by_type(&mut self.files, self.sort_type.clone());
         self.last_clicked_file = None;
-        block_on(self.regen_uifiles());
+        block_on(self.regen_ui_files());
     }
     fn mkdir(&mut self) {
-        let path = format!("{}/NewFolder", self.currentpath.to_string_lossy().to_string());
+        let path = format!("{}/NewFolder", self.current_path.to_string_lossy().to_string());
         Command::new("mkdir").arg(path).output().unwrap();
         self.regen_files();
-        sort_file_by_type(&mut self.files, self.sorttype.clone());
+        sort_file_by_type(&mut self.files, self.sort_type.clone());
         self.last_clicked_file = None;
-        block_on(self.regen_uifiles());
+        block_on(self.regen_ui_files());
     }
     fn rename(&mut self) {
         let src_path = self.files[self.last_clicked_file.unwrap()].path().to_string_lossy().to_string();
-        let dest_path = format!("{}/{}", self.currentpath.to_string_lossy().to_string(), self.typemode.clone().unwrap());
+        let dest_path = format!("{}/{}", self.current_path.to_string_lossy().to_string(), self.type_mode.clone().unwrap());
         Command::new("mv").arg(src_path).arg(dest_path).output().unwrap();
         self.regen_files();
-        sort_file_by_type(&mut self.files, self.sorttype.clone());
+        sort_file_by_type(&mut self.files, self.sort_type.clone());
         self.last_clicked_file = None;
-        block_on(self.regen_uifiles());
+        block_on(self.regen_ui_files());
     }
 }
 fn sort_file_by_type(input: &mut Vec<DirEntry>, sort_type: SortType) {//sort files based on the chosen SortType
@@ -358,28 +358,28 @@ fn sort_file_by_type(input: &mut Vec<DirEntry>, sort_type: SortType) {//sort fil
             input.sort_by(|a, b| b.file_name().to_string_lossy().to_string().partial_cmp( &a.file_name().to_string_lossy().to_string()).unwrap())
         }
         SortType::Files => {
-            input.sort_by(|a, b| foldercmp(a, b, false))
+            input.sort_by(|a, b| folder_cmp(a, b, false))
         }
         SortType::Folders => {
-            input.sort_by(|a, b| foldercmp(a, b, true))
+            input.sort_by(|a, b| folder_cmp(a, b, true))
         }
     }
 }
 
 impl Application for Narwhal {
+    type Executor = executor::Default;
     type Message = Message;
     type Theme = Theme;
-    type Executor = executor::Default;
     type Flags = ();
     fn new(_flags: ()) -> (Self, iced::Command<Self::Message>) {//initialize program
         let mut narwhal = Self::default();
         use cosmic_time::button;
-        let unmitosis = chain![RENAMEBTN, 
+        let un_mitosis = chain![RENAME_BTN,
             button(Duration::ZERO).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
             button(Duration::from_millis(500)).width(Length::Fixed(75.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
             button(Duration::from_millis(500)).width(Length::Fixed(1000.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
         ];
-        narwhal.anims.set_chain(unmitosis).start();
+        narwhal.anims.set_chain(un_mitosis).start();
         (
             narwhal,
             iced::Command::none()
@@ -389,10 +389,10 @@ impl Application for Narwhal {
         String::from("Narwhal File Manager")
     }
     fn update(&mut self, message: Self::Message) -> iced::Command<Self::Message> {//decide what to do based on message
-        let mut tempfiles: Vec<String> = vec![];
+        let mut temp_files: Vec<String> = vec![];
         for file in &self.files {
             let temp = file.file_name().to_string_lossy().to_string();
-            tempfiles.push(temp);
+            temp_files.push(temp);
         };
         match message {
             Message::FileClicked(x) => {//a file was clicked, interact it
@@ -405,20 +405,20 @@ impl Application for Narwhal {
                 }
                 iced::Command::none()
             },
-            Message::SortChanged => {//change sortmode
+            Message::SortChanged => {//change sort mode
                 self.change_sort(false);
                 iced::Command::none()
             }
             Message::HiddenChanged => {//change hidden flag
                 self.show_hidden = !self.show_hidden;
-                block_on(self.regen_uifiles());
+                block_on(self.regen_ui_files());
                 iced::Command::none()
             }
-            Message::BookmarkCurrent => {//bookmark or unbookmark current dir
-                let dir = self.currentpath.to_string_lossy().to_string();
+            Message::BookmarkCurrent => {//bookmark or un-bookmark current dir
+                let dir = self.current_path.to_string_lossy().to_string();
                 let paths: Vec<&str> = dir.split('/').into_iter().collect();
                 let name = paths[paths.len()-1].to_string();
-                let bookmark = BookmarkDir { name: name, path: dir };
+                let bookmark = BookmarkDir { name, path: dir };
                 let mut bookmark_already_exists = None;
                 for i in 0..self.bookmarked_dirs.len() {
                     if bookmark.path == self.bookmarked_dirs[i].path {
@@ -436,15 +436,15 @@ impl Application for Narwhal {
                 iced::Command::none()
             }
             Message::BookmarkClicked(index) => {//go to the bookmark's chosen dir
-                self.currentpath = PathBuf::from(self.bookmarked_dirs[index].path.clone());
+                self.current_path = PathBuf::from(self.bookmarked_dirs[index].path.clone());
                 self.regen_files();
-                sort_file_by_type(&mut self.files, self.sorttype.clone());
+                sort_file_by_type(&mut self.files, self.sort_type.clone());
                 self.last_clicked_file = None;
-                block_on(self.regen_uifiles());
+                block_on(self.regen_ui_files());
                 iced::Command::none()
             }
             Message::KeyboardUpdate(kb_event) => {//send to keyboard parser
-                self.kbparse(kb_event)
+                self.kb_parse(kb_event)
             }
             Message::WindowUpdate(win_event) => {
                 match win_event {
@@ -466,7 +466,7 @@ impl Application for Narwhal {
                         if old_cols == self.desired_cols && old_rows == self.desired_rows {
 
                         } else {
-                            block_on(self.regen_uifiles());
+                            block_on(self.regen_ui_files());
                         }
                         iced::Command::none()
                     },
@@ -476,7 +476,7 @@ impl Application for Narwhal {
                         let cached_contents = toml::to_string(&yes).unwrap();
                         let cache_home = format!("{}/NarwhalFM", get_cache_home());
                         fs::write(cache_home, cached_contents).unwrap();
-                        let config_file = Config { sort_mode: encode_sort(self.sorttype.clone()), show_hidden: self.show_hidden, bookmarks: self.bookmarked_dirs.clone(), icntheme: self.icntheme.clone(), icnsize: self.icnsize };
+                        let config_file = Config { sort_mode: encode_sort(self.sort_type.clone()), show_hidden: self.show_hidden, bookmarks: self.bookmarked_dirs.clone(), icn_theme: self.icn_theme.clone(), icn_size: self.icn_size };
                         let config_text = toml::to_string(&config_file).unwrap();
                         let config_home = format!("{}/Oceania/NarwhalFM.toml", get_config_home());
                         fs::write(config_home, config_text).unwrap();
@@ -550,43 +550,43 @@ impl Application for Narwhal {
                 iced::Command::none()
             }
             Message::RenameToggle => {
-                match &self.typemode {
+                match &self.type_mode {
                     Some(val) => {
                         match self.last_clicked_file {
                             Some(..) => {
                                 if val.len() >= 1 {
                                     self.rename()
                                 }
-                                self.typemode = None
+                                self.type_mode = None
                             }
                             None => {
-                                self.typemode = None
+                                self.type_mode = None
                             }
                         }
                         use cosmic_time::button;
-                        let unmitosis = chain![RENAMEBTN, 
+                        let un_mitosis = chain![RENAME_BTN,
                             button(Duration::ZERO).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                             button(Duration::from_millis(500)).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                             button(Duration::from_millis(500)).width(Length::Fixed(1000.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                         ];
-                        self.anims.set_chain(unmitosis).start();
+                        self.anims.set_chain(un_mitosis).start();
                         iced::Command::none()
                     },
                     None => {
                         use cosmic_time::button;
-                        let mitosis = chain![RENAMEBTN, 
+                        let mitosis = chain![RENAME_BTN,
                             button(Duration::ZERO).width(Length::Fixed(1000.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                             button(Duration::from_millis(500)).width(Length::Fixed(1000.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                             button(Duration::from_millis(500)).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                         ];
                         self.anims.set_chain(mitosis).start();
-                        self.typemode = Some(String::default());
+                        self.type_mode = Some(String::default());
                         text_input::focus(self.rename_id.clone())
                     }
                 }
             }
             Message::RenameUpdate(x) => {
-                self.typemode = Some(x);
+                self.type_mode = Some(x);
                 iced::Command::none()
             }
             Message::Tick(now) => {
@@ -599,19 +599,19 @@ impl Application for Narwhal {
             Message::ToggleMenu => {
                 use cosmic_time::button;
                 self.show_file_options = !self.show_file_options;
-                let grow_options = chain![MENUBTN,
+                let grow_options = chain![MENU_BTN,
                     button(Duration::ZERO).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                     button(Duration::from_millis(500)).width(Length::Fixed(50.0)).height(Length::Fixed(TOP_HEIGHT as f32))
                 ];
-                let shrink_options = chain![MENUBTN,
+                let shrink_options = chain![MENU_BTN,
                     button(Duration::ZERO).width(Length::Fixed(50.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                     button(Duration::from_millis(500)).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32))
                 ];
-                let grow_options_long = chain![MENUBTN_LONG,
+                let grow_options_long = chain![MENU_BTN_LONG,
                     button(Duration::ZERO).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                     button(Duration::from_millis(500)).width(Length::Fixed(80.0)).height(Length::Fixed(TOP_HEIGHT as f32))
                 ];
-                let shrink_options_long = chain![MENUBTN_LONG,
+                let shrink_options_long = chain![MENU_BTN_LONG,
                     button(Duration::ZERO).width(Length::Fixed(80.0)).height(Length::Fixed(TOP_HEIGHT as f32)),
                     button(Duration::from_millis(500)).width(Length::Fixed(0.0)).height(Length::Fixed(TOP_HEIGHT as f32))
                 ];
@@ -637,29 +637,29 @@ impl Application for Narwhal {
         // construct top bar
         let option_btn = Button::new("...").height(TOP_HEIGHT).on_press(Message::ToggleMenu).style(current_theme.secondary.mk_theme());
         let back_btn = string_button(translated[0].clone(), SPECIAL_FONT_SIZE).on_press(Message::GoBack(1)).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
-        let sort_btn = anim!(MENUBTN, &self.anims, Text::new(translated[1].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::SortChanged).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
+        let sort_btn = anim!(MENU_BTN, &self.anims, Text::new(translated[1].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::SortChanged).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
         let delete_btn = if self.deletion_confirmation {
-            anim!(MENUBTN_LONG, &self.anims, Text::new(translated[2].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(theme::Button::Destructive)
+            anim!(MENU_BTN_LONG, &self.anims, Text::new(translated[2].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(theme::Button::Destructive)
         } else {
-            anim!(MENUBTN_LONG, &self.anims, Text::new(translated[2].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
+            anim!(MENU_BTN_LONG, &self.anims, Text::new(translated[2].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::DeleteClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
         let mv_btn = match self.mv_target {
-            Some(..) => anim!(MENUBTN, &self.anims, Text::new(translated[3].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::MvClicked),
-            None => anim!(MENUBTN, &self.anims, Text::new(translated[4].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::MvClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
+            Some(..) => anim!(MENU_BTN, &self.anims, Text::new(translated[3].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::MvClicked),
+            None => anim!(MENU_BTN, &self.anims, Text::new(translated[4].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::MvClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
         let cp_btn = match self.cp_target {
-            Some(..) => anim!(MENUBTN, &self.anims, Text::new(translated[5].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::CpClicked),
-            None => anim!(MENUBTN, &self.anims, Text::new(translated[6].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::CpClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
+            Some(..) => anim!(MENU_BTN, &self.anims, Text::new(translated[5].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::CpClicked),
+            None => anim!(MENU_BTN, &self.anims, Text::new(translated[6].clone()).size(SPECIAL_FONT_SIZE)).on_press(Message::CpClicked).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme())
         };
-        let hidden_btn = anim!(MENUBTN_LONG, &self.anims, Text::new(translated[7].clone()).size(SPECIAL_FONT_SIZE)).height(TOP_HEIGHT).on_press(Message::HiddenChanged).style(current_theme.secondary.mk_theme());
-        let bookmark_btn = anim!(MENUBTN_LONG, &self.anims, Text::new(translated[8].clone()).size(SPECIAL_FONT_SIZE)).height(TOP_HEIGHT).on_press(Message::BookmarkCurrent).style(current_theme.secondary.mk_theme());
-        let touch_btn = anim!(MENUBTN, &self.anims, Text::new(translated[9].clone()).size(SPECIAL_FONT_SIZE)).width(SIDEBAR_WIDTH).on_press(Message::MkFile).style(current_theme.sidebar.mk_theme());
-        let mkdir_btn = anim!(MENUBTN, &self.anims, Text::new(translated[10].clone()).size(SPECIAL_FONT_SIZE)).width(SIDEBAR_WIDTH).on_press(Message::MkDir).style(current_theme.sidebar.mk_theme());
+        let hidden_btn = anim!(MENU_BTN_LONG, &self.anims, Text::new(translated[7].clone()).size(SPECIAL_FONT_SIZE)).height(TOP_HEIGHT).on_press(Message::HiddenChanged).style(current_theme.secondary.mk_theme());
+        let bookmark_btn = anim!(MENU_BTN_LONG, &self.anims, Text::new(translated[8].clone()).size(SPECIAL_FONT_SIZE)).height(TOP_HEIGHT).on_press(Message::BookmarkCurrent).style(current_theme.secondary.mk_theme());
+        let touch_btn = anim!(MENU_BTN, &self.anims, Text::new(translated[9].clone()).size(SPECIAL_FONT_SIZE)).width(SIDEBAR_WIDTH).on_press(Message::MkFile).style(current_theme.sidebar.mk_theme());
+        let mkdir_btn = anim!(MENU_BTN, &self.anims, Text::new(translated[10].clone()).size(SPECIAL_FONT_SIZE)).width(SIDEBAR_WIDTH).on_press(Message::MkDir).style(current_theme.sidebar.mk_theme());
         //let function_cap = Button::new("").width(5000).height(TOP_HEIGHT).style(current_theme.secondary.mk_theme());
         let rename_btn = string_button(translated[11].clone(), SPECIAL_FONT_SIZE).height(Length::Fixed(TOP_HEIGHT as f32)).on_press(Message::RenameToggle).style(current_theme.secondary.mk_theme());
-        let function_cap = anim!(RENAMEBTN, &self.anims, "").height(TOP_HEIGHT).on_press(Message::NoOp).style(current_theme.secondary.mk_theme());
+        let function_cap = anim!(RENAME_BTN, &self.anims, "").height(TOP_HEIGHT).on_press(Message::NoOp).style(current_theme.secondary.mk_theme());
         let mut function_buttons = Row::new().push(back_btn).push(option_btn).push(sort_btn).push(hidden_btn).push(bookmark_btn).push(delete_btn).push(mv_btn).push(cp_btn).push(rename_btn).push(function_cap);
-        let txt = match &self.typemode {
+        let txt = match &self.type_mode {
             Some(x) => x.clone(),
             None => String::from("")
         };
@@ -679,49 +679,56 @@ impl Application for Narwhal {
         bookmark_buttons = bookmark_buttons.push(bookmark_cap);
         //construct file view
         let mut file_listing = Column::new();
-        let mut temprow = Row::new();
-        let mut filebtnfutures = vec![];
-        for i in 0..self.uifiles.len() {
-            filebtnfutures.push(self.uifiles[i].render());
+        let mut temp_row = Row::new();
+        let mut file_btn_futures = vec![];
+        for i in 0..self.ui_files.len() {
+            file_btn_futures.push(self.ui_files[i].render());
         }
-        let mut test = block_on(join_all(filebtnfutures));
+        let mut test = block_on(join_all(file_btn_futures));
         for i in 0..test.len() {
             let full = test.remove(0);
             if i % self.desired_cols as usize == 0 {
-                file_listing = file_listing.push(temprow);
-                temprow = Row::new().spacing(SPACING);
+                file_listing = file_listing.push(temp_row);
+                temp_row = Row::new().spacing(SPACING);
             }
-            temprow = temprow.push(full);
+            temp_row = temp_row.push(full);
         }
-        file_listing = file_listing.push(temprow);
-        let mut pathbar = Row::new();
-        let chars: Vec<char> = self.currentpath.to_string_lossy().to_string().chars().collect();
-        let mut pathentries = vec![];
-        let pathcap = Button::new("").height(TOP_HEIGHT).width(10000).style(current_theme.sidebar.mk_theme()).on_press(Message::NoOp);
+        file_listing = file_listing.push(temp_row);
+        let mut path_bar = Row::new();
+        let chars: Vec<char> = self.current_path.to_string_lossy().to_string().chars().collect();
+        let mut path_entries = vec![];
+        let path_cap = Button::new("").height(TOP_HEIGHT).width(10000).style(current_theme.sidebar.mk_theme()).on_press(Message::NoOp);
         let mut entries = 0;
         for character in chars {
             if character == '/' {
-                pathentries.push(String::default());
-                entries = pathentries.len() - 1;
+                path_entries.push(String::default());
+                entries = path_entries.len() - 1;
             } else {
-                pathentries[entries] = format!("{}{}", pathentries[entries], character);
+                path_entries[entries] = format!("{}{}", path_entries[entries], character);
             }
         }
         let mut iterations = 0;
-        for entry in pathentries {
-            pathbar = pathbar.push(Button::new(Text::new("/")).on_press(Message::NoOp).style(current_theme.sidebar.mk_theme()).height(TOP_HEIGHT));
-            pathbar = pathbar.push(Button::new(Text::new(entry)).on_press(Message::GoBack(entries - iterations)).style(current_theme.sidebar.mk_theme()).height(TOP_HEIGHT));
+        for entry in path_entries {
+            path_bar = path_bar.push(Button::new(Text::new("/")).on_press(Message::NoOp).style(current_theme.sidebar.mk_theme()).height(TOP_HEIGHT));
+            path_bar = path_bar.push(Button::new(Text::new(entry)).on_press(Message::GoBack(entries - iterations)).style(current_theme.sidebar.mk_theme()).height(TOP_HEIGHT));
             iterations = iterations + 1;
         }
-        pathbar = pathbar.push(pathcap);
+        path_bar = path_bar.push(path_cap);
         //return render commands
-        let ruleh = Rule::horizontal(RULE_WIDTH);
-        let ruleh2 = Rule::horizontal(RULE_WIDTH);
-        let fillspace = Space::new(10, Length::Fill);
-        let rulev = Rule::vertical(RULE_WIDTH);
-        let col_test = Column::new().push(function_buttons).push(ruleh).push(file_listing).push(fillspace).push(ruleh2).push(pathbar);
-        let row_test = Row::new().push(bookmark_buttons).push(rulev).push(col_test);
+        let rule_h = Rule::horizontal(RULE_WIDTH);
+        let rule_h2 = Rule::horizontal(RULE_WIDTH);
+        let fill_space = Space::new(10, Length::Fill);
+        let rule_v = Rule::vertical(RULE_WIDTH);
+        let col_test = Column::new().push(function_buttons).push(rule_h).push(file_listing).push(fill_space).push(rule_h2).push(path_bar);
+        let row_test = Row::new().push(bookmark_buttons).push(rule_v).push(col_test);
         Container::new(row_test).width(Length::Fill).height(Length::Fill).into()
+    }
+    fn theme(&self) -> Self::Theme {//send in the selected application theme
+        match self.theme {
+            ThemeType::Light => mk_app_theme(self.themes.light.application.clone()),
+            ThemeType::Dark => mk_app_theme(self.themes.dark.application.clone()),
+            ThemeType::Custom => mk_app_theme(self.themes.custom.application.clone()),
+        }
     }
     fn subscription(&self) -> iced::Subscription<Message> {//listen in on keyboard and window events
         iced::Subscription::batch(vec![
@@ -734,12 +741,5 @@ impl Application for Narwhal {
                 }
             )
         ])
-    }
-    fn theme(&self) -> Self::Theme {//send in the selected application theme
-        match self.theme {
-            ThemeType::Light => mk_app_theme(self.themes.light.application.clone()),
-            ThemeType::Dark => mk_app_theme(self.themes.dark.application.clone()),
-            ThemeType::Custom => mk_app_theme(self.themes.custom.application.clone()),
-        }
     }
 }

@@ -21,27 +21,27 @@ pub fn get_theme_file() -> CustomTheme {
     let home = get_config_home();//read theme file
     match fs::read_to_string(format!("{home}/Oceania/theme.toml")) {
         Ok(file) => { // if it succeeds, construct a theme according to file
-            let themefile: ThemeFile = toml::from_str(&file).unwrap();
+            let theme_file: ThemeFile = toml::from_str(&file).unwrap();
             CustomTheme {
                 application: Palette {
-                    background: col_from_string(themefile.bg_color1.clone()),
-                    text: col_from_string(themefile.txt_color.clone()),
-                    primary: col_from_string(themefile.blue.clone()),
-                    success: col_from_string(themefile.green.clone()),
-                    danger: col_from_string(themefile.red.clone()),
+                    background: col_from_string(theme_file.bg_color1.clone()),
+                    text: col_from_string(theme_file.txt_color.clone()),
+                    primary: col_from_string(theme_file.blue.clone()),
+                    success: col_from_string(theme_file.green.clone()),
+                    danger: col_from_string(theme_file.red.clone()),
                 },
                 sidebar: ButtonStyle {
                     border_radius: 2.0,
-                    txt_color: col_from_string(themefile.txt_color.clone()),
-                    bg_color: Some(col_from_string(themefile.bg_color2.clone())),
+                    txt_color: col_from_string(theme_file.txt_color.clone()),
+                    bg_color: Some(col_from_string(theme_file.bg_color2.clone())),
                     border_color: Color::from_rgb8(0, 0, 0),
                     border_width: 0.0,
                     shadow_offset: iced::Vector {x: 0.0, y: 0.0}
                 },
                 secondary: ButtonStyle {
                     border_radius: 2.0,
-                    txt_color: col_from_string(themefile.txt_color.clone()),
-                    bg_color: Some(col_from_string(themefile.bg_color3.clone())),
+                    txt_color: col_from_string(theme_file.txt_color.clone()),
+                    bg_color: Some(col_from_string(theme_file.bg_color3.clone())),
                     border_color: Color::from_rgb8(0, 0, 0),
                     border_width: 0.0,
                     shadow_offset: iced::Vector {x: 0.0, y: 0.0}
@@ -50,7 +50,7 @@ pub fn get_theme_file() -> CustomTheme {
         }
         Err(..) => {
             CustomTheme {//if it fails, use the light theme
-                application: iced::theme::Palette {
+                application: Palette {
                     background: Color::from_rgb8(0xE0, 0xF5, 0xFF),
                     text: Color::from_rgb8(0x00, 0x19, 0x36),
                     primary: Color::from_rgb8(0x00, 0xF1, 0xD6),
@@ -77,7 +77,7 @@ pub fn get_theme_file() -> CustomTheme {
         }
     }
 }
-pub fn encode_sort(sort_type: SortType) -> String {//convert a sorttype to a string
+pub fn encode_sort(sort_type: SortType) -> String {//convert a sort type to a string
     match sort_type {
         SortType::Alphabetical => "Alphabetical".to_string(),
         SortType::Reverse => "Reverse".to_string(),
@@ -85,7 +85,7 @@ pub fn encode_sort(sort_type: SortType) -> String {//convert a sorttype to a str
         SortType::Files => "Files".to_string(),
     }
 }
-pub fn decode_sort(sort_type: String) -> SortType {//convert a string into a sorttype
+pub fn decode_sort(sort_type: String) -> SortType {//convert a string into a sort type
     let test = String::as_str(&sort_type);
     match test {
         "Alphabetical" => SortType::Alphabetical,
@@ -125,15 +125,15 @@ pub struct Config {//struct representation of a config file
     pub sort_mode: String,
     pub show_hidden: bool,
     pub bookmarks: Vec<BookmarkDir>,
-    pub icntheme: String,
-    pub icnsize: u16
+    pub icn_theme: String,
+    pub icn_size: u16
 }
 #[derive(Serialize, Deserialize, Clone)]
 pub struct CacheFile {//struct representation of the cache file
     pub contents: HashMap<String, String>
 }
 #[derive(Clone)]
-pub enum SortType { //enum representing what sorttype is preferred
+pub enum SortType { //enum representing what sort type is preferred
     Alphabetical,
     Reverse,
     Folders,

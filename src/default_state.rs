@@ -1,5 +1,4 @@
 use crate::Narwhal;
-use crate::config_helpers::get_theme_file;
 use crate::sort_file_by_type;
 use std::str::FromStr;
 use std::{env, fs};
@@ -12,12 +11,11 @@ use crate::get_cache_home;
 use crate::get_config_home;
 use crate::Config;
 use crate::decode_sort;
-use crate::get_set_theme;
 use iced::Color;
-use crate::CustomTheme;
-use crate::ThemeSet;
-use crate::ButtonStyle;
+
 use iced::futures::executor::block_on;
+use iced_style::theme;
+use oceania_style::{ButtonStyle, get_set_theme, ListStyle, make_custom_theme, MenuStyle, ThemeCustom, ThemeSet};
 
 impl Default for Narwhal {
     fn default() -> Self {
@@ -60,58 +58,92 @@ impl Default for Narwhal {
             icn_size: config_struct.icn_size,
             show_file_options: true,
             themes: ThemeSet {
-                light: CustomTheme {
-                    application: iced::theme::Palette {
-                        background: Color::from_rgb8(0xE0, 0xF5, 0xFF),
-                        text: Color::from_rgb8(0x00, 0x19, 0x36),
-                        primary: Color::from_rgb8(0x00, 0xF1, 0xD6),
-                        success: Color::from_rgb8(0xFF, 0x4C, 0x00),
-                        danger: Color::from_rgb8(0xFF, 0x4C, 0x00),
-                    },
-                    sidebar: ButtonStyle { 
-                        border_radius: 2.0,
-                        txt_color: Color::from_rgb8( 0x00, 0x19, 0x36),
-                        bg_color: Some(Color::from_rgb8(0xD2, 0xF0, 0xFF)),
-                        border_color: Color::from_rgb8(0, 0, 0),
-                        border_width: 0.0,
-                        shadow_offset: iced::Vector {x: 0.0, y: 0.0}
-                    },
-                    secondary: ButtonStyle {
-                        border_radius: 2.0,
-                        txt_color: Color::from_rgb8(0x00, 0x20, 0x46),
-                        bg_color: Some(Color::from_rgb8(0xC6, 0xEC, 0xFF)),
-                        border_color: Color::from_rgb8(0, 0, 0),
-                        border_width: 0.0,
-                        shadow_offset: iced::Vector {x: 0.0, y: 0.0}
-                    },
+            light: ThemeCustom {
+                application: theme::Palette {
+                    background: Color::from_rgb8(0xE0, 0xF5, 0xFF),
+                    text: Color::from_rgb8(0x00, 0x19, 0x36),
+                    primary: Color::from_rgb8(0x00, 0x77, 0xFF),
+                    success: Color::from_rgb8(0x00, 0xCB, 0x40),
+                    danger: Color::from_rgb8(0xFF, 0x4C, 0x00),
                 },
-                dark: CustomTheme {
-                    application: iced::theme::Palette {
-                        background: Color::from_rgb8(0x00, 0x19, 0x36),
-                        text: Color::from_rgb8(0xE0, 0xF5, 0xFF),
-                        primary: Color::from_rgb8(0x00, 0xCD, 0xB6),
-                        success: Color::from_rgb8(1, 1, 1),
-                        danger: Color::from_rgb8(0xC5, 0x3A, 0x00),
-                    },
-                    sidebar: ButtonStyle { 
-                        border_radius: 2.0,
-                        txt_color: Color::from_rgb8( 0xE0, 0xF5, 0xFF),
-                        bg_color: Some(Color::from_rgb8(0x00, 0x20, 0x46)),
-                        border_color: Color::from_rgb8(0, 0, 0),
-                        border_width: 0.0,
-                        shadow_offset: iced::Vector {x: 0.0, y: 0.0}
-                    },
-                    secondary: ButtonStyle {
-                        border_radius: 2.0,
+                sidebar: ButtonStyle {
+                    border_radius: 2.0,
+                    txt_color: Color::from_rgb8(0x00, 0x19, 0x36),
+                    bg_color: Color::from_rgb8(0xD2, 0xF0, 0xFF),
+                    border_color: Color::from_rgb8(0, 0, 0),
+                    border_width: 0.0,
+                    shadow_offset: iced::Vector { x: 0.0, y: 0.0 }
+                },
+                secondary: ButtonStyle {
+                    border_radius: 2.0,
+                    txt_color: Color::from_rgb8(0x00, 0x20, 0x46),
+                    bg_color: Color::from_rgb8(0xC6, 0xEC, 0xFF),
+                    border_color: Color::from_rgb8(0, 0, 0),
+                    border_width: 0.0,
+                    shadow_offset: iced::Vector { x: 0.0, y: 0.0 }
+                },
+                list: ListStyle {
+                    txt_color: Color::from_rgb8(0x00, 0x19, 0x36),
+                    bg_color: Color::from_rgb8(0xE0, 0xF5, 0xFF),
+                    handle_color: Color::from_rgb8(0x00, 0x19, 0x36),
+                    border_radius: 5.0,
+                    border_width: 2.0,
+                    border_color: Color::from_rgb8(0x00, 0x19, 0x36),
+                    menu: MenuStyle {
+                        txt_color: Color::from_rgb8(0x00, 0x19, 0x36),
+                        bg_color: Color::from_rgb8(0xE0, 0xF5, 0xFF),
+                        border_radius: 5.0,
+                        border_width: 2.0,
+                        border_color: Color::from_rgb8(0x00, 0x19, 0x36),
+                        sel_txt_color: Color::from_rgb8(0x00, 0x19, 0x36),
+                        sel_bg_color: Color::from_rgb8(0x00, 0xF1, 0xD6),
+                    }
+                }
+            },
+            dark: ThemeCustom { // TODO: set dark theme properly
+                application: theme::Palette {
+                    background: Color::from_rgb8(0x00, 0x19, 0x36),
+                    text: Color::from_rgb8(0xE0, 0xF5, 0xFF),
+                    primary: Color::from_rgb8(0x00, 0xAB, 0xE1),
+                    success: Color::from_rgb8(0x00, 0xA9, 0x35),
+                    danger: Color::from_rgb8(0xC5, 0x3A, 0x00),
+                },
+                sidebar: ButtonStyle {
+                    border_radius: 2.0,
+                    txt_color: Color::from_rgb8(0xE0, 0xF5, 0xFF),
+                    bg_color: Color::from_rgb8(0x00, 0x20, 0x46),
+                    border_color: Color::from_rgb8(0, 0, 0),
+                    border_width: 0.0,
+                    shadow_offset: iced::Vector { x: 0.0, y: 0.0 }
+                },
+                secondary: ButtonStyle {
+                    border_radius: 2.0,
+                    txt_color: Color::from_rgb8(0xE0, 0xF5, 0xFF),
+                    bg_color: Color::from_rgb8(0x00, 0x29, 0x58),
+                    border_color: Color::from_rgb8(0, 0, 0),
+                    border_width: 0.0,
+                    shadow_offset: iced::Vector { x: 0.0, y: 0.0 }
+                },
+                list: ListStyle {
+                    txt_color: Color::from_rgb8(0xE0, 0xF5, 0xFF),
+                    bg_color: Color::from_rgb8(0x00, 0x29, 0x58),
+                    handle_color: Color::from_rgb8(0xE0, 0xF5, 0xFF),
+                    border_radius: 5.0,
+                    border_width: 2.0,
+                    border_color: Color::from_rgb8(0xE0, 0xF5, 0xFF),
+                    menu: MenuStyle {
                         txt_color: Color::from_rgb8(0xE0, 0xF5, 0xFF),
-                        bg_color: Some(Color::from_rgb8(0x00, 0x29, 0x58)),
-                        border_color: Color::from_rgb8(0, 0, 0),
-                        border_width: 0.0,
-                        shadow_offset: iced::Vector {x: 0.0, y: 0.0}
-                    },
-                },
-                custom: get_theme_file()
-            }
+                        bg_color: Color::from_rgb8(0xE0, 0xF5, 0xFF),
+                        border_radius: 5.0,
+                        border_width: 2.0,
+                        border_color: Color::from_rgb8(0xE0, 0xF5, 0xFF),
+                        sel_txt_color: Color::from_rgb8(0xE0, 0xF5, 0xFF),
+                        sel_bg_color: Color::from_rgb8(0x00, 0xCD, 0xB6),
+                    }
+                }
+            },
+            custom: make_custom_theme()
+        },
         };
         final_struct.regen_files();//generate file list
         sort_file_by_type(&mut final_struct.files, final_struct.sort_type.clone());//sort file list

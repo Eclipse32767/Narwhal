@@ -13,8 +13,7 @@ use std::process::Command;
 use toml;
 use gettextrs::*;
 use gettextrs::gettext as tr;
-use lib_style::{ThemeSet, CustomTheme, ButtonStyle, ThemeFile, mk_app_theme, col_from_string};
-mod lib_style;
+
 use icon_helpers::{get_file_icon, get_file_mimetype};
 mod icon_helpers;
 use config_helpers::*;
@@ -26,6 +25,7 @@ mod default_state;
 use cosmic_time::{
     self, anim, chain, id, Duration, Instant, once_cell::sync::Lazy, Timeline,
 };
+use oceania_style::{mk_app_theme, SelectedTheme, ThemeSet};
 
 fn main() -> Result {
     let _ = textdomain("NarwhalFM");
@@ -66,7 +66,7 @@ struct Narwhal {//contains all application state
     mv_target: Option<String>,
     cp_target: Option<String>,
     themes: ThemeSet,
-    theme: ThemeType,
+    theme: SelectedTheme,
     type_mode: Option<String>,
     rename_id: text_input::Id,
     show_keybinds: bool,
@@ -626,9 +626,9 @@ impl Application for Narwhal {
     }
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {//render code!
         let current_theme = match self.theme {//clone selected theme into current_theme
-            ThemeType::Light => self.themes.light.clone(),
-            ThemeType::Dark => self.themes.dark.clone(),
-            ThemeType::Custom => self.themes.custom.clone(),
+            SelectedTheme::Light => self.themes.light.clone(),
+            SelectedTheme::Dark => self.themes.dark.clone(),
+            SelectedTheme::Custom => self.themes.custom.clone(),
         }; 
         let translated = match self.show_keybinds {
             true => [tr("<Backspace>"), tr("<S>"), tr("<Shift+Minus>"), tr("<M>"), tr("<M>"), tr("<C>"), tr("<C>"), tr("<H>"),  tr("<Shift+B>"), tr("<N>"), tr("<Shift+N>"), tr("<R>")],
@@ -725,9 +725,9 @@ impl Application for Narwhal {
     }
     fn theme(&self) -> Self::Theme {//send in the selected application theme
         match self.theme {
-            ThemeType::Light => mk_app_theme(self.themes.light.application.clone()),
-            ThemeType::Dark => mk_app_theme(self.themes.dark.application.clone()),
-            ThemeType::Custom => mk_app_theme(self.themes.custom.application.clone()),
+            SelectedTheme::Light => mk_app_theme(self.themes.light.application.clone()),
+            SelectedTheme::Dark => mk_app_theme(self.themes.dark.application.clone()),
+            SelectedTheme::Custom => mk_app_theme(self.themes.custom.application.clone()),
         }
     }
     fn subscription(&self) -> iced::Subscription<Message> {//listen in on keyboard and window events

@@ -10,9 +10,10 @@ cosmic-time = {git = "https://github.com/pop-os/cosmic-time.git", features = ["i
 env_logger = "0.10.0"
 freedesktop-icons = "0.2.3"
 gettext-rs = {version = "0.7.0", features = ["gettext-system"]}
-serde = "1.0.159"
+oceania_style = { git = "https://github.com/Eclipse32767/oceania_style.git", version = "0.1.1" }
+serde = "1.0.189"
 serde_derive = "1.0.159"
-toml = "0.7.3"
+toml = "0.8.4"
 whoami = "1.4.0"
 xdg-utils = "0.4.0"
 
